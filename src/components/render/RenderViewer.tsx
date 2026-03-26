@@ -51,6 +51,7 @@ interface RenderViewerProps {
   roomRenders?: RoomRender[];
   roomName?: string;
   initialRenderStatus?: RenderStatus;
+  allowDirectStatusChange?: boolean;
   onRenderStatusChange?: (status: RenderStatus) => Promise<void>;
   onStatusRequest?: () => Promise<void>;
   onBack?: () => void;
@@ -103,6 +104,7 @@ export default function RenderViewer({
   roomRenders = [],
   roomName,
   initialRenderStatus = "REVIEW",
+  allowDirectStatusChange = false,
   onRenderStatusChange,
   onStatusRequest,
   onBack,
@@ -359,14 +361,21 @@ export default function RenderViewer({
               <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-100 text-green-700">
                 Zaakceptowany
               </span>
-              {onStatusRequest && (
+              {allowDirectStatusChange ? (
+                <button
+                  onClick={() => updateRenderStatus("REVIEW")}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline transition-colors"
+                >
+                  Cofnij akceptację
+                </button>
+              ) : onStatusRequest ? (
                 <button
                   onClick={onStatusRequest}
                   className="text-xs text-gray-400 hover:text-gray-600 underline transition-colors"
                 >
                   Poproś o zmianę
                 </button>
-              )}
+              ) : null}
             </div>
           ) : (
             <button

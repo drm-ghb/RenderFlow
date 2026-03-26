@@ -10,6 +10,7 @@ export async function GET(
   const project = await prisma.project.findUnique({
     where: { shareToken: token },
     include: {
+      user: { select: { allowDirectStatusChange: true } },
       rooms: {
         where: { archived: false },
         orderBy: { order: "asc" },
@@ -33,5 +34,6 @@ export async function GET(
     return NextResponse.json({ error: "Nie znaleziono" }, { status: 404 });
   }
 
-  return NextResponse.json(project);
+  const { user, ...rest } = project;
+  return NextResponse.json({ ...rest, allowDirectStatusChange: user.allowDirectStatusChange });
 }

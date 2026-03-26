@@ -8,7 +8,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Nieautoryzowany" }, { status: 401 });
   }
 
-  const { name, email } = await req.json();
+  const { name, email, allowDirectStatusChange } = await req.json();
 
   if (email && email !== session.user.email) {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -17,9 +17,10 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const data: { name?: string; email?: string } = {};
+  const data: { name?: string; email?: string; allowDirectStatusChange?: boolean } = {};
   if (name !== undefined) data.name = name;
   if (email !== undefined) data.email = email;
+  if (allowDirectStatusChange !== undefined) data.allowDirectStatusChange = allowDirectStatusChange;
 
   const user = await prisma.user.update({
     where: { id: session.user.id },

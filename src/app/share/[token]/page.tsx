@@ -54,6 +54,7 @@ interface Project {
   title: string;
   description: string | null;
   rooms: Room[];
+  allowDirectStatusChange: boolean;
 }
 
 export default function SharePage() {
@@ -237,11 +238,12 @@ export default function SharePage() {
           isDesigner={false}
           roomRenders={roomRenders.length > 1 ? roomRenders : []}
           initialRenderStatus={selectedRender.status}
+          allowDirectStatusChange={project.allowDirectStatusChange}
           onRenderStatusChange={(status) =>
             handleRenderStatusChange(selectedRender.id, status)
           }
           onStatusRequest={
-            pendingRequests.has(selectedRender.id)
+            project.allowDirectStatusChange || pendingRequests.has(selectedRender.id)
               ? undefined
               : () => handleStatusRequest(selectedRender.id)
           }

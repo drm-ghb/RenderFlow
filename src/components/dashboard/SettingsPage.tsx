@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { User, Mail, Lock, Info, Sun, Moon, Monitor, Palette } from "lucide-react";
+import { User, Mail, Lock, Info, Sun, Moon, Monitor, Palette, Users } from "lucide-react";
 import { useTheme, type Theme } from "@/lib/theme";
 
 interface Props {
   initialName: string;
   initialEmail: string;
+  initialAllowDirectStatusChange: boolean;
 }
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: React.ElementType }[] = [
@@ -19,9 +20,10 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: React.ElementType }[] 
   { value: "system", label: "Systemowy", icon: Monitor },
 ];
 
-export function SettingsPage({ initialName, initialEmail }: Props) {
+export function SettingsPage({ initialName, initialEmail, initialAllowDirectStatusChange }: Props) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [allowDirectStatusChange, setAllowDirectStatusChange] = useState(initialAllowDirectStatusChange);
 
   const [name, setName] = useState(initialName);
   const [nameLoading, setNameLoading] = useState(false);
@@ -209,6 +211,57 @@ export function SettingsPage({ initialName, initialEmail }: Props) {
         >
           {passwordLoading ? "Zmienianie..." : "Zmień hasło"}
         </Button>
+      </div>
+
+      {/* Uprawnienia klientów */}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Users size={18} className="text-gray-400" />
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200">Uprawnienia klientów</h2>
+        </div>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-gray-700 dark:text-gray-300">Samodzielne cofanie akceptacji</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Zezwól klientom na bezpośrednie cofnięcie statusu &quot;Zaakceptowany&quot; → &quot;Do weryfikacji&quot; bez zatwierdzenia przez projektanta.
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              const next = !allowDirectStatusChange;
+              const res = await fetch("/api/user", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ allowDirectStatusChange: next }),
+              });
+              if (res.ok) {
+                setAllowDirectStatusChange(next);
+                toast.success(next ? "Klienci mogą teraz samodzielnie cofać akceptacje" : "Cofanie akceptacji wymaga teraz zatwierdzenia projektanta");
+              } else {
+                toast.error("Błąd podczas zapisywania ustawienia");
+              }
+            }}
+            className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none ${
+              allowDirectStatusChange ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700"
+            }`}
+            role="switch"
+            aria-checked={allowDirectStatusChange}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                allowDirectStatusChange ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+        <div className="flex items-start gap-2 text-xs text-gray-400 bg-muted rounded-lg px-3 py-2">
+          <Info size={13} className="mt-0.5 flex-shrink-0" />
+          <span>
+            {allowDirectStatusChange
+              ? "Włączone — klient widzi przycisk \"Cofnij akceptację\" i może bezpośrednio zmienić status."
+              : "Wyłączone — klient widzi \"Poproś o zmianę\", a projektant musi potwierdzić każdą prośbę."}
+          </span>
+        </div>
       </div>
 
       {/* Motyw */}

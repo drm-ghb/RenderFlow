@@ -9,7 +9,7 @@ export default async function SettingsRoute() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true },
+    select: { name: true, email: true, allowDirectStatusChange: true },
   });
 
   if (!user) redirect("/login");
@@ -18,6 +18,7 @@ export default async function SettingsRoute() {
     <SettingsPage
       initialName={user.name ?? ""}
       initialEmail={user.email}
+      initialAllowDirectStatusChange={user.allowDirectStatusChange}
     />
   );
 }
