@@ -295,7 +295,7 @@ export default function NotificationsClient({ userId }: { userId: string }) {
 
       {/* Bulk bar */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 mb-4 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+        <div className="flex items-center gap-3 mb-4 px-4 py-2.5 bg-muted border border-border rounded-lg text-sm">
           <span className="text-gray-500">Zaznaczono: <strong>{selected.size}</strong></span>
           <div className="flex gap-2 ml-auto">
             <Button size="sm" variant="outline" onClick={() => handleBulk(true)}>Przeczytane</Button>
@@ -322,7 +322,7 @@ export default function NotificationsClient({ userId }: { userId: string }) {
 
       {/* Notifications list */}
       {filtered.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+        <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
           {filtered.map((n) => (
             <NotificationRow
               key={n.id}

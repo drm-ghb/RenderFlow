@@ -69,9 +69,9 @@ const STATUS_BADGE: Record<CommentStatus, string> = {
 };
 
 const STATUS_LABEL: Record<CommentStatus, string> = {
-  NEW: "To Do",
-  IN_PROGRESS: "In Progress",
-  DONE: "Done",
+  NEW: "Nowy",
+  IN_PROGRESS: "W trakcie",
+  DONE: "Gotowe",
 };
 
 function formatDate(iso: string) {
@@ -148,6 +148,13 @@ export default function RenderViewer({
           if (c.replies.some((r) => r.id === reply.id)) return c;
           return { ...c, replies: [...c.replies, reply] };
         })
+      );
+    });
+    channel.bind("reply-deleted", ({ commentId, replyId }: { commentId: string; replyId: string }) => {
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id !== commentId ? c : { ...c, replies: c.replies.filter((r) => r.id !== replyId) }
+        )
       );
     });
 
@@ -260,6 +267,10 @@ export default function RenderViewer({
     toast.success("Komentarz usunięty");
   }
 
+  async function deleteReply(commentId: string, replyId: string) {
+    await fetch(`/api/comments/${commentId}/replies/${replyId}`, { method: "DELETE" });
+  }
+
   const todoCount = comments.filter((c) => c.status === "NEW").length;
   const inProgressCount = comments.filter((c) => c.status === "IN_PROGRESS").length;
   const doneCount = comments.filter((c) => c.status === "DONE").length;
@@ -268,9 +279,9 @@ export default function RenderViewer({
   const selectedIndex = selectedId ? comments.findIndex((c) => c.id === selectedId) : -1;
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-card">
       {/* Header bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-white flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-card flex-shrink-0">
         {(projectId || onBack) ? (
           <>
             {onBack ? (
@@ -321,7 +332,7 @@ export default function RenderViewer({
           <div className="w-px h-4 bg-gray-200 mx-1" />
 
           {isDesigner ? (
-            <div className="flex items-center gap-1 bg-gray-100 rounded-md p-0.5">
+            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
               <button
                 onClick={() => updateRenderStatus("REVIEW")}
                 className={`text-xs px-2.5 py-1 rounded transition-colors font-medium ${
@@ -373,7 +384,7 @@ export default function RenderViewer({
             className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
               lightboxOpen
                 ? "bg-gray-900 text-white border-gray-900"
-                : "border-transparent text-gray-500 hover:bg-gray-100"
+                : "border-transparent text-gray-500 hover:bg-muted"
             }`}
           >
             <Eye size={14} /> Podgląd
@@ -383,7 +394,7 @@ export default function RenderViewer({
             className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
               mode === "pin"
                 ? "bg-gray-900 text-white border-gray-900"
-                : "border-transparent text-gray-500 hover:bg-gray-100"
+                : "border-transparent text-gray-500 hover:bg-muted"
             }`}
           >
             <MapPin size={14} /> Dodaj pin
@@ -393,7 +404,7 @@ export default function RenderViewer({
             className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
               showComments
                 ? "bg-gray-900 text-white border-gray-900"
-                : "border-transparent text-gray-500 hover:bg-gray-100"
+                : "border-transparent text-gray-500 hover:bg-muted"
             }`}
           >
             <List size={14} /> Lista
@@ -405,7 +416,7 @@ export default function RenderViewer({
       <div className="flex flex-1 min-h-0">
         {/* Thumbnails sidebar */}
         {roomRenders.length > 1 && (
-          <div className="w-44 border-r bg-white flex flex-col flex-shrink-0 overflow-hidden">
+          <div className="w-44 border-r bg-card flex flex-col flex-shrink-0 overflow-hidden">
             <div className="px-3 py-2.5 border-b flex-shrink-0">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Pliki ({roomRenders.length})
@@ -422,7 +433,7 @@ export default function RenderViewer({
                       : "border-transparent hover:border-gray-200"
                   }`}
                 >
-                  <div className="aspect-video bg-gray-100 overflow-hidden">
+                  <div className="aspect-video bg-muted overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={r.fileUrl}
@@ -442,7 +453,7 @@ export default function RenderViewer({
         )}
 
         {/* Image area */}
-        <div className="flex-1 overflow-auto bg-gray-100 flex items-start justify-center p-6">
+        <div className="flex-1 overflow-auto bg-muted flex items-start justify-center p-6">
           <div
             ref={imgRef}
             className={`relative select-none ${mode === "pin" ? "cursor-crosshair" : "cursor-default"}`}
@@ -496,12 +507,12 @@ export default function RenderViewer({
             {/* New comment popup */}
             {pending && (
               <div
-                className="absolute z-20 bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-64"
+                className="absolute z-20 bg-card rounded-xl shadow-xl border border-border p-4 w-64"
                 style={popupPosition(pending.x, pending.y)}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">New Comment</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">Nowy pin</h3>
                   <button onClick={cancelPending} className="text-gray-400 hover:text-gray-700">
                     <X size={14} />
                   </button>
@@ -509,14 +520,14 @@ export default function RenderViewer({
                 <Input
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Brief title (optional)"
+                  placeholder="Tytuł (opcjonalnie)"
                   className="mb-2 text-sm"
                   onKeyDown={(e) => { if (e.key === "Escape") cancelPending(); }}
                 />
                 <Textarea
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  placeholder="Describe what needs to be changed..."
+                  placeholder="Opisz co wymaga zmiany..."
                   className="mb-3 text-sm resize-none"
                   rows={3}
                   autoFocus
@@ -526,9 +537,9 @@ export default function RenderViewer({
                   }}
                 />
                 <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={cancelPending}>Cancel</Button>
+                  <Button size="sm" variant="outline" onClick={cancelPending}>Anuluj</Button>
                   <Button size="sm" onClick={submitComment} disabled={adding || !newContent.trim()}>
-                    {adding ? "Adding..." : "Add Pin"}
+                    {adding ? "Dodawanie..." : "Dodaj pin"}
                   </Button>
                 </div>
               </div>
@@ -537,7 +548,7 @@ export default function RenderViewer({
             {/* Thread popup for existing pin */}
             {selectedComment && (
               <div
-                className="absolute z-20 bg-white rounded-xl shadow-xl border border-gray-200 w-72 flex flex-col"
+                className="absolute z-20 bg-card rounded-xl shadow-xl border border-border w-72 flex flex-col"
                 style={{
                   ...popupPosition(selectedComment.posX, selectedComment.posY),
                   maxHeight: "360px",
@@ -571,27 +582,49 @@ export default function RenderViewer({
                   <div className="px-4 py-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-semibold text-gray-800">{selectedComment.author}</span>
-                      <span className="text-[10px] text-gray-400">{formatDate(selectedComment.createdAt)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-gray-400">{formatDate(selectedComment.createdAt)}</span>
+                        {(isDesigner || selectedComment.author === authorName) && (
+                          <button
+                            onClick={() => deleteComment(selectedComment.id)}
+                            className="text-gray-300 hover:text-red-400 transition-colors"
+                            title="Usuń"
+                          >
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm text-gray-700 leading-relaxed">{selectedComment.content}</p>
                   </div>
 
                   {/* Replies */}
                   {selectedComment.replies.map((r) => (
-                    <div key={r.id} className="px-4 py-3 bg-gray-50">
+                    <div key={r.id} className="px-4 py-3 bg-muted/50">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-semibold text-gray-800">{r.author}</span>
-                        <span className="text-[10px] text-gray-400">{formatDate(r.createdAt)}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-gray-400">{formatDate(r.createdAt)}</span>
+                          {(isDesigner || r.author === authorName) && (
+                            <button
+                              onClick={() => deleteReply(selectedComment.id, r.id)}
+                              className="text-gray-300 hover:text-red-400 transition-colors"
+                              title="Usuń"
+                            >
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <p className="text-sm text-gray-700 leading-relaxed">{r.content}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Status buttons (designer only) */}
-                {isDesigner && (
+                {/* Status buttons (designer only) + delete */}
+                {(isDesigner || selectedComment.author === authorName) && (
                   <div className="px-4 py-2 border-t flex gap-1 flex-wrap flex-shrink-0">
-                    {(["NEW", "IN_PROGRESS", "DONE"] as CommentStatus[]).map((s) => (
+                    {isDesigner && (["NEW", "IN_PROGRESS", "DONE"] as CommentStatus[]).map((s) => (
                       <button
                         key={s}
                         onClick={() => updateStatus(selectedComment.id, s)}
@@ -604,12 +637,14 @@ export default function RenderViewer({
                         {STATUS_LABEL[s]}
                       </button>
                     ))}
-                    <button
-                      onClick={() => deleteComment(selectedComment.id)}
-                      className="text-xs px-2 py-1 rounded-md border border-red-200 text-red-500 hover:bg-red-50 ml-auto"
-                    >
-                      Delete
-                    </button>
+                    {(isDesigner || selectedComment.author === authorName) && (
+                      <button
+                        onClick={() => deleteComment(selectedComment.id)}
+                        className="text-xs px-2 py-1 rounded-md border border-red-200 text-red-500 hover:bg-red-50 ml-auto"
+                      >
+                        Usuń
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -643,17 +678,17 @@ export default function RenderViewer({
         </div>
 
         {/* Sidebar */}
-        {showComments && <div className="w-72 border-l bg-white flex flex-col flex-shrink-0">
+        {showComments && <div className="w-72 border-l bg-card flex flex-col flex-shrink-0">
           <div className="px-4 py-3 border-b flex-shrink-0">
             <h3 className="text-sm font-semibold text-gray-900">
-              All Comments ({comments.length})
+              Wszystkie piny ({comments.length})
             </h3>
           </div>
 
           <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
             {comments.length === 0 && (
               <p className="text-xs text-gray-400 text-center py-8">
-                {mode === "pin" ? "Click on the image to add a pin" : "No comments yet"}
+                {mode === "pin" ? "Kliknij na obraz aby dodać pin" : "Brak pinów"}
               </p>
             )}
             {comments.map((c, i) => {
@@ -664,7 +699,7 @@ export default function RenderViewer({
                 <div
                   key={c.id}
                   className={`px-4 py-3 cursor-pointer transition-colors ${
-                    isSelected ? "bg-blue-50" : "hover:bg-gray-50"
+                    isSelected ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-muted/50"
                   }`}
                   onClick={() => {
                     setSelectedId(c.id === selectedId ? null : c.id);
@@ -688,7 +723,7 @@ export default function RenderViewer({
                       <p className="text-xs text-gray-500 mt-0.5">
                         {c.author} · {formatDate(c.createdAt)}
                         {totalReplies > 0 && (
-                          <span className="ml-1 text-blue-500">{totalReplies} {totalReplies === 1 ? "reply" : "replies"}</span>
+                          <span className="ml-1 text-blue-500">{totalReplies} {totalReplies === 1 ? "odpowiedź" : totalReplies < 5 ? "odpowiedzi" : "odpowiedzi"}</span>
                         )}
                       </p>
                     </div>
@@ -719,7 +754,7 @@ export default function RenderViewer({
                   setLightboxOpen(false);
                   setMode("pin");
                 }}
-                className="flex items-center gap-1.5 text-sm bg-white text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-md font-medium transition-colors"
+                className="flex items-center gap-1.5 text-sm bg-card text-foreground hover:bg-muted px-3 py-1.5 rounded-md font-medium transition-colors"
               >
                 <MapPin size={14} /> Dodaj pin
               </button>

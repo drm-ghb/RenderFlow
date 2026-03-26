@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LayoutGrid } from "lucide-react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { SettingsButton } from "@/components/dashboard/SettingsButton";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 
 export default async function DashboardLayout({
@@ -16,10 +17,11 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="bg-white border-b">
+      <nav className="bg-card border-b">
         <div className="container mx-auto px-6 max-w-6xl flex items-center justify-between py-3">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="RenderFlow" width={28} height={28} />
+            <Image src="/logo.svg" alt="RenderFlow" width={28} height={28} className="block dark:hidden" />
+            <Image src="/logo-dark.svg" alt="RenderFlow" width={28} height={28} className="hidden dark:block" />
             <span className="text-xl font-bold">Render<span className="text-blue-600">Flow</span></span>
           </Link>
           <div className="flex items-center gap-6">
@@ -31,6 +33,7 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">{session.user.name || session.user.email}</span>
+            <SettingsButton />
             <SignOutButton />
           </div>
         </div>

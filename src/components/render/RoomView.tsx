@@ -59,19 +59,19 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
   return (
     <>
       {/* Tabs + view toggle */}
-      <div className="flex items-center justify-between border-b border-gray-200 mb-6">
+      <div className="flex items-center justify-between border-b border-border mb-6">
         <div className="flex items-center gap-1">
           <button
             onClick={() => setTab("active")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               tab === "active"
-                ? "border-gray-900 text-gray-900"
-                : "border-transparent text-gray-400 hover:text-gray-600"
+                ? "border-foreground text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             Rendery
             {renders.length > 0 && (
-              <span className="ml-1.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
                 {renders.length}
               </span>
             )}
@@ -80,29 +80,29 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
             onClick={() => setTab("archived")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               tab === "archived"
-                ? "border-gray-900 text-gray-900"
-                : "border-transparent text-gray-400 hover:text-gray-600"
+                ? "border-foreground text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             Zarchiwizowane
             {archivedRenders.length > 0 && (
-              <span className="ml-1.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
                 {archivedRenders.length}
               </span>
             )}
           </button>
         </div>
         {tab === "active" && renders.length > 0 && (
-          <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5 mb-1">
+          <div className="flex items-center gap-0.5 bg-muted rounded-md p-0.5 mb-1">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded transition-colors ${viewMode === "grid" ? "bg-white shadow-sm text-gray-900" : "text-gray-400 hover:text-gray-600"}`}
+              className={`p-1.5 rounded transition-colors ${viewMode === "grid" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               <LayoutGrid size={15} />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded transition-colors ${viewMode === "list" ? "bg-white shadow-sm text-gray-900" : "text-gray-400 hover:text-gray-600"}`}
+              className={`p-1.5 rounded transition-colors ${viewMode === "list" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               <List size={15} />
             </button>
@@ -112,7 +112,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
 
       {tab === "active" ? (
         renders.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-muted-foreground">
             <p className="text-lg font-medium">Brak plików</p>
             <p className="text-sm mt-1">Dodaj pierwszy render klikając przycisk powyżej.</p>
           </div>
@@ -121,7 +121,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
             {renders.map((render) => (
               <Link key={render.id} href={`/projects/${projectId}/renders/${render.id}`}>
                 <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer group relative">
-                  <div className="aspect-video bg-gray-100 overflow-hidden">
+                  <div className="aspect-video bg-muted overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={render.fileUrl}
@@ -140,7 +140,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
                         {render.status === "ACCEPTED" ? "Zaakceptowany" : "Do weryfikacji"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                       <MessageSquare size={11} />
                       {render.commentCount > 0 ? `${render.commentCount} uwag` : "Brak uwag"}
                     </p>
@@ -156,22 +156,22 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
             ))}
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             {renders.map((render, i) => (
               <div
                 key={render.id}
-                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group ${
-                  i !== renders.length - 1 ? "border-b border-gray-100" : ""
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group ${
+                  i !== renders.length - 1 ? "border-b border-border" : ""
                 }`}
               >
                 <Link href={`/projects/${projectId}/renders/${render.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-14 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                  <div className="w-14 h-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={render.fileUrl} alt={render.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{render.name}</p>
-                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <p className="text-sm font-medium text-foreground truncate">{render.name}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <MessageSquare size={10} />
                       {render.commentCount > 0 ? `${render.commentCount} uwag` : "Brak uwag"}
                     </p>
@@ -195,7 +195,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
           </div>
         )
       ) : archivedRenders.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <p className="text-4xl mb-4">📦</p>
           <p className="text-lg">Brak zarchiwizowanych renderów</p>
         </div>
@@ -203,7 +203,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {archivedRenders.map((render) => (
             <Card key={render.id} className="overflow-hidden opacity-60">
-              <div className="aspect-video bg-gray-100 overflow-hidden">
+              <div className="aspect-video bg-muted overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={render.fileUrl}

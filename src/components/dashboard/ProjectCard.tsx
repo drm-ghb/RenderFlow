@@ -35,45 +35,44 @@ export default function ProjectCard({
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg leading-tight">{title}</CardTitle>
-          <div className="flex items-center gap-1 shrink-0">
-            <Badge variant="secondary">{renderCount} renderów</Badge>
-            <ProjectMenu
-              project={{ id, title, clientName, clientEmail, description }}
-            />
+    <Link href={`/projects/${id}`} className="block">
+      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-lg leading-tight">{title}</CardTitle>
+            <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.preventDefault()}>
+              <Badge variant="secondary">{renderCount} renderów</Badge>
+              <ProjectMenu
+                project={{ id, title, clientName, clientEmail, description }}
+              />
+            </div>
           </div>
-        </div>
 
-        {(clientName || clientEmail) && (
-          <div className="flex flex-col gap-0.5 mt-1">
-            {clientName && (
-              <p className="text-sm text-gray-600 font-medium">{clientName}</p>
-            )}
-            {clientEmail && (
-              <p className="text-xs text-gray-400">{clientEmail}</p>
-            )}
-          </div>
-        )}
+          {(clientName || clientEmail) && (
+            <div className="flex flex-col gap-0.5 mt-1">
+              {clientName && (
+                <p className="text-sm text-gray-600 font-medium">{clientName}</p>
+              )}
+              {clientEmail && (
+                <p className="text-xs text-gray-400">{clientEmail}</p>
+              )}
+            </div>
+          )}
 
-        {description && (
-          <CardDescription className="line-clamp-2 mt-1">{description}</CardDescription>
-        )}
+          {description && (
+            <CardDescription className="line-clamp-2 mt-1">{description}</CardDescription>
+          )}
 
-        <p className="text-xs text-gray-400 mt-1">
-          {new Date(createdAt).toLocaleDateString("pl-PL")}
-        </p>
-      </CardHeader>
-      <CardFooter className="flex gap-2 flex-wrap">
-        <Button asChild size="sm">
-          <Link href={`/projects/${id}`}>Otwórz</Link>
-        </Button>
-        <Button size="sm" variant="outline" onClick={copyShareLink}>
-          Skopiuj link
-        </Button>
-      </CardFooter>
-    </Card>
+          <p className="text-xs text-gray-400 mt-1">
+            {new Date(createdAt).toLocaleDateString("pl-PL")}
+          </p>
+        </CardHeader>
+        <CardFooter className="flex gap-2 flex-wrap" onClick={(e) => e.preventDefault()}>
+          <Button size="sm" variant="outline" onClick={copyShareLink}>
+            Skopiuj link
+          </Button>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 }

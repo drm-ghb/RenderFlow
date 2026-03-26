@@ -34,7 +34,7 @@ export default async function RenderPage({ params }: Props) {
     : [];
 
   return (
-    <div className="fixed inset-0 top-[57px] z-20 bg-white">
+    <div className="fixed inset-0 top-[57px] z-20 bg-background">
       <RenderViewer
         renderId={render.id}
         renderName={render.name}

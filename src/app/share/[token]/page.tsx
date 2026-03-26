@@ -7,6 +7,7 @@ import RenderViewer from "@/components/render/RenderViewer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getRoomIcon } from "@/lib/roomIcons";
+import { SettingsButton } from "@/components/dashboard/SettingsButton";
 import { ChevronLeft, MessageSquare } from "lucide-react";
 import { pusherClient } from "@/lib/pusher";
 import { toast } from "sonner";
@@ -190,7 +191,8 @@ export default function SharePage() {
     <div className="flex items-center justify-center min-h-screen px-4">
       <div className="w-full max-w-sm text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Image src="/logo.svg" alt="RenderFlow" width={32} height={32} />
+          <Image src="/logo.svg" alt="RenderFlow" width={32} height={32} className="block dark:hidden" />
+          <Image src="/logo-dark.svg" alt="RenderFlow" width={32} height={32} className="hidden dark:block" />
           <h1 className="text-2xl font-bold">
             Render<span className="text-blue-600">Flow</span>
           </h1>
@@ -250,12 +252,13 @@ export default function SharePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Nav */}
-      <nav className="bg-white border-b flex-shrink-0">
+      <nav className="bg-card border-b flex-shrink-0">
         <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-3">
           <div className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="RenderFlow" width={26} height={26} />
+            <Image src="/logo.svg" alt="RenderFlow" width={26} height={26} className="block dark:hidden" />
+            <Image src="/logo-dark.svg" alt="RenderFlow" width={26} height={26} className="hidden dark:block" />
             <span className="font-bold text-lg">
               Render<span className="text-blue-600">Flow</span>
             </span>
@@ -279,9 +282,12 @@ export default function SharePage() {
               </>
             )}
           </div>
-          <span className="text-sm text-gray-500">
-            Przeglądasz jako: <strong>{authorName}</strong>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              Przeglądasz jako: <strong>{authorName}</strong>
+            </span>
+            <SettingsButton />
+          </div>
         </div>
       </nav>
 
@@ -301,7 +307,7 @@ export default function SharePage() {
                     <button
                       key={room.id}
                       onClick={() => { setSelectedRoom(room); setView("room"); }}
-                      className="group text-left bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
+                      className="group text-left bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
                     >
                       <div className="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
                         <Icon size={28} className="text-orange-400" />
@@ -337,9 +343,9 @@ export default function SharePage() {
                   <button
                     key={render.id}
                     onClick={() => { setSelectedRender(render); setView("render"); }}
-                    className="text-left bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                    className="text-left bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
                   >
-                    <div className="aspect-video bg-gray-100 overflow-hidden">
+                    <div className="aspect-video bg-muted overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={render.fileUrl}
