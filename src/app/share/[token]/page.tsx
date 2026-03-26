@@ -33,12 +33,20 @@ interface Comment {
   replies: Reply[];
 }
 
+interface RenderVersion {
+  id: string;
+  fileUrl: string;
+  versionNumber: number;
+  archivedAt: string;
+}
+
 interface Render {
   id: string;
   name: string;
   fileUrl: string;
   status: RenderStatus;
   comments: Comment[];
+  versions: RenderVersion[];
 }
 
 interface Room {
@@ -389,6 +397,7 @@ export default function SharePage() {
           allowClientComments={project.allowClientComments}
           allowClientAcceptance={project.allowClientAcceptance}
           hideCommentCount={project.hideCommentCount}
+          versions={selectedRender.versions.map((v) => ({ ...v, archivedAt: typeof v.archivedAt === "string" ? v.archivedAt : new Date(v.archivedAt).toISOString() }))}
           onRenderStatusChange={(status) => handleRenderStatusChange(selectedRender.id, status)}
           onStatusRequest={
             project.allowDirectStatusChange || pendingRequests.has(selectedRender.id)

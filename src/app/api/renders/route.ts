@@ -19,6 +19,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Projekt nie znaleziony" }, { status: 404 });
   }
 
+  // Check for existing render with same name (case-insensitive) in same project+room
+  const existing = await prisma.render.findFirst({
+    where: {
+      projectId,
+      roomId: roomId || null,
+      name: { equals: name, mode: "insensitive" },
+      archived: false,
+    },
+    include: { _count: { select: { versions: true } } },
+  });
+
+  if (existing) {
+    // Archive current version, then replace file data
+    const versionNumber = existing._count.versions + 1;
+    const now = new Date();
+
+    await prisma.$transaction([
+      prisma.renderVersion.create({
+        data: {
+          renderId: existing.id,
+          fileUrl: existing.fileUrl,
+          fileKey: existing.fileKey,
+          versionNumber,
+          archivedAt: now,
+        },
+      }),
+      prisma.render.update({
+        where: { id: existing.id },
+        data: { fileUrl, fileKey },
+      }),
+    ]);
+
+    const updated = await prisma.render.findUnique({ where: { id: existing.id } });
+    return NextResponse.json({ ...updated, versioned: true }, { status: 200 });
+  }
+
+  // New render
   const count = await prisma.render.count({ where: { projectId } });
   const render = await prisma.render.create({
     data: {

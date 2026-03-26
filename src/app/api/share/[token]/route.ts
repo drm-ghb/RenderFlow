@@ -37,6 +37,10 @@ export async function GET(
                 orderBy: { createdAt: "asc" },
                 include: { replies: { orderBy: { createdAt: "asc" } } },
               },
+              versions: {
+                orderBy: { archivedAt: "desc" },
+                select: { id: true, fileUrl: true, versionNumber: true, archivedAt: true },
+              },
             },
           },
         },

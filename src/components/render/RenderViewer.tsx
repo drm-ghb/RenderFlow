@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ChevronLeft, Eye, MapPin, List, X, Send, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ChevronLeft, Eye, EyeOff, MapPin, List, X, Send, ZoomIn, ZoomOut, RotateCcw, History } from "lucide-react";
 
 type CommentStatus = "NEW" | "IN_PROGRESS" | "DONE";
 
@@ -36,6 +36,13 @@ interface RoomRender {
   fileUrl: string;
 }
 
+interface RenderVersion {
+  id: string;
+  fileUrl: string;
+  versionNumber: number;
+  archivedAt: string;
+}
+
 type RenderStatus = "REVIEW" | "ACCEPTED";
 
 interface RenderViewerProps {
@@ -55,6 +62,7 @@ interface RenderViewerProps {
   allowClientComments?: boolean;
   allowClientAcceptance?: boolean;
   hideCommentCount?: boolean;
+  versions?: RenderVersion[];
   onRenderStatusChange?: (status: RenderStatus) => Promise<void>;
   onStatusRequest?: () => Promise<void>;
   onBack?: () => void;
@@ -111,6 +119,7 @@ export default function RenderViewer({
   allowClientComments = true,
   allowClientAcceptance = true,
   hideCommentCount = false,
+  versions = [],
   onRenderStatusChange,
   onStatusRequest,
   onBack,
@@ -127,8 +136,11 @@ export default function RenderViewer({
   const [mode, setMode] = useState<"view" | "pin">("view");
   const [showComments, setShowComments] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [hidePins, setHidePins] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [zoom, setZoom] = useState(1);
   const imgRef = useRef<HTMLDivElement>(null);
+  const lightboxImgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const channel = pusherClient.subscribe(`render-${renderId}`);
@@ -234,7 +246,11 @@ export default function RenderViewer({
           author: authorName,
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Błąd dodawania komentarza");
+        return;
+      }
       cancelPending();
       toast.success("Komentarz dodany");
     } catch {
@@ -418,6 +434,16 @@ export default function RenderViewer({
 
           <div className="w-px h-4 bg-gray-200 mx-1" />
 
+          {versions.length > 0 && (
+            <button
+              onClick={() => setShowVersionHistory(true)}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-transparent text-gray-500 hover:bg-muted transition-colors"
+              title="Historia wersji"
+            >
+              <History size={14} /> Wersje ({versions.length})
+            </button>
+          )}
+
           <button
             onClick={openLightbox}
             className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
@@ -440,6 +466,17 @@ export default function RenderViewer({
               <MapPin size={14} /> Dodaj pin
             </button>
           )}
+          <button
+            onClick={() => setHidePins((v) => !v)}
+            className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
+              hidePins
+                ? "bg-gray-900 text-white border-gray-900"
+                : "border-transparent text-gray-500 hover:bg-muted"
+            }`}
+          >
+            {hidePins ? <EyeOff size={14} /> : <Eye size={14} />}
+            {hidePins ? "Pokaż piny" : "Ukryj piny"}
+          </button>
           <button
             onClick={() => setShowComments((v) => !v)}
             className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
@@ -511,7 +548,7 @@ export default function RenderViewer({
             />
 
             {/* Comment pins */}
-            {comments.map((c, i) => (
+            {!hidePins && comments.map((c, i) => (
               <button
                 key={c.id}
                 className={`absolute w-7 h-7 rounded-full border-2 border-white text-white text-xs font-bold flex items-center justify-center shadow-lg z-10 transition-transform hover:scale-110 ${STATUS_PIN_COLOR[c.status]} ${
@@ -793,16 +830,16 @@ export default function RenderViewer({
               {(isDesigner || allowClientComments) && (
                 <button
                   onClick={() => {
-                    setLightboxOpen(false);
-                    setMode("pin");
+                    setMode(mode === "pin" ? "view" : "pin");
+                    cancelPending();
                   }}
-                  className="flex items-center gap-1.5 text-sm bg-card text-foreground hover:bg-muted px-3 py-1.5 rounded-md font-medium transition-colors"
+                  className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md font-medium transition-colors bg-white text-black hover:bg-white/90"
                 >
-                  <MapPin size={14} /> Dodaj pin
+                  <MapPin size={14} /> {mode === "pin" ? "Anuluj" : "Dodaj pin"}
                 </button>
               )}
               <button
-                onClick={() => setLightboxOpen(false)}
+                onClick={() => { setLightboxOpen(false); setMode("view"); cancelPending(); }}
                 className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
               >
                 <X size={18} />
@@ -820,8 +857,20 @@ export default function RenderViewer({
             }}
           >
             <div
-              className="relative flex-shrink-0"
+              ref={lightboxImgRef}
+              className={`relative flex-shrink-0 select-none ${mode === "pin" ? "cursor-crosshair" : "cursor-default"}`}
               style={{ width: `${Math.max(60, 75 * zoom)}vw` }}
+              onClick={(e) => {
+                if (mode !== "pin") return;
+                if (pending) return;
+                const rect = lightboxImgRef.current!.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setPending({ x, y });
+                setNewTitle("");
+                setNewContent("");
+                setSelectedId(null);
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -830,19 +879,193 @@ export default function RenderViewer({
                 className="w-full h-auto block rounded-lg"
                 draggable={false}
               />
-              {/* Pins overlay */}
-              {comments.map((c, i) => (
-                <div
+
+              {/* Pins overlay — interactive */}
+              {!hidePins && comments.map((c, i) => (
+                <button
                   key={c.id}
-                  className={`absolute w-7 h-7 rounded-full border-2 border-white text-white text-xs font-bold flex items-center justify-center shadow-lg ${STATUS_PIN_COLOR[c.status]}`}
+                  className={`absolute w-7 h-7 rounded-full border-2 border-white text-white text-xs font-bold flex items-center justify-center shadow-lg z-10 transition-transform hover:scale-110 ${STATUS_PIN_COLOR[c.status]} ${
+                    selectedId === c.id ? "scale-125 ring-2 ring-white ring-offset-1" : ""
+                  }`}
                   style={{
                     left: `calc(${c.posX}% - 14px)`,
                     top: `calc(${c.posY}% - 14px)`,
                   }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedId(c.id === selectedId ? null : c.id);
+                    cancelPending();
+                    setReplyContent("");
+                  }}
                 >
                   {i + 1}
-                </div>
+                </button>
               ))}
+
+              {/* Pending pin */}
+              {pending && (
+                <div
+                  className="absolute w-7 h-7 rounded-full bg-blue-500 border-2 border-white text-white text-xs font-bold flex items-center justify-center shadow-lg z-10 animate-pulse pointer-events-none"
+                  style={{
+                    left: `calc(${pending.x}% - 14px)`,
+                    top: `calc(${pending.y}% - 14px)`,
+                  }}
+                >
+                  +
+                </div>
+              )}
+
+              {/* New comment popup */}
+              {pending && (
+                <div
+                  className="absolute z-20 bg-card rounded-xl shadow-xl border border-border p-4 w-64"
+                  style={popupPosition(pending.x, pending.y)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900">Nowy pin</h3>
+                    <button onClick={cancelPending} className="text-gray-400 hover:text-gray-700">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <Input
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="Tytuł (opcjonalnie)"
+                    className="mb-2 text-sm"
+                    onKeyDown={(e) => { if (e.key === "Escape") cancelPending(); }}
+                  />
+                  <Textarea
+                    value={newContent}
+                    onChange={(e) => setNewContent(e.target.value)}
+                    placeholder="Opisz co wymaga zmiany..."
+                    className="mb-3 text-sm resize-none"
+                    rows={3}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && e.ctrlKey) submitComment();
+                      if (e.key === "Escape") cancelPending();
+                    }}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={cancelPending} className="text-sm text-gray-400 hover:text-gray-600 transition-colors px-2">Anuluj</button>
+                    <Button size="sm" onClick={submitComment} disabled={adding || !newContent.trim()}>
+                      {adding ? "Dodawanie..." : "Dodaj"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Thread popup for existing pin */}
+              {selectedComment && !pending && (
+                <div
+                  className="absolute z-20 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl w-72 flex flex-col"
+                  style={{
+                    ...popupPosition(selectedComment.posX, selectedComment.posY),
+                    maxHeight: "360px",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 flex-shrink-0">
+                    <span className={`w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 ${STATUS_PIN_COLOR[selectedComment.status]}`}>
+                      {selectedIndex + 1}
+                    </span>
+                    <span className="text-sm font-semibold text-white truncate flex-1">
+                      {selectedComment.title || `Pin #${selectedIndex + 1}`}
+                    </span>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_BADGE[selectedComment.status]}`}>
+                      {STATUS_LABEL[selectedComment.status]}
+                    </span>
+                    <button
+                      onClick={() => { setSelectedId(null); setReplyContent(""); }}
+                      className="text-white/40 hover:text-white flex-shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto divide-y divide-white/10 min-h-0">
+                    <div className="px-4 py-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-white">{selectedComment.author}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-white/40">{formatDate(selectedComment.createdAt)}</span>
+                          {(isDesigner || selectedComment.author === authorName) && (
+                            <button onClick={() => deleteComment(selectedComment.id)} className="text-white/20 hover:text-red-400 transition-colors">
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm text-white/80 leading-relaxed">{selectedComment.content}</p>
+                    </div>
+                    {selectedComment.replies.map((r) => (
+                      <div key={r.id} className="px-4 py-3 bg-white/5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-white">{r.author}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-white/40">{formatDate(r.createdAt)}</span>
+                            {(isDesigner || r.author === authorName) && (
+                              <button onClick={() => deleteReply(selectedComment.id, r.id)} className="text-white/20 hover:text-red-400 transition-colors">
+                                <X size={11} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-white/80 leading-relaxed">{r.content}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {isDesigner && (
+                    <div className="px-4 py-2 border-t border-white/10 flex gap-1 flex-wrap flex-shrink-0">
+                      {(["NEW", "IN_PROGRESS", "DONE"] as CommentStatus[]).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => updateStatus(selectedComment.id, s)}
+                          className={`text-xs px-2 py-1 rounded-md border transition-colors ${
+                            selectedComment.status === s
+                              ? "bg-white text-black border-white"
+                              : "border-white/20 text-white/60 hover:border-white/50"
+                          }`}
+                        >
+                          {STATUS_LABEL[s]}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => deleteComment(selectedComment.id)}
+                        className="text-xs px-2 py-1 rounded-md border border-red-500/40 text-red-400 hover:bg-red-500/10 ml-auto"
+                      >
+                        Usuń
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="px-4 py-3 border-t border-white/10 flex-shrink-0">
+                    <div className="flex gap-2">
+                      <Textarea
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        placeholder="Dodaj odpowiedź..."
+                        className="text-sm resize-none flex-1 bg-zinc-800 border-white/10 text-white placeholder:text-white/30"
+                        rows={2}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && e.ctrlKey) submitReply();
+                          if (e.key === "Escape") { setSelectedId(null); setReplyContent(""); }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        className="self-end flex-shrink-0"
+                        onClick={submitReply}
+                        disabled={replying || !replyContent.trim()}
+                      >
+                        <Send size={13} />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -866,6 +1089,71 @@ export default function RenderViewer({
             >
               <ZoomIn size={18} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Version History Modal */}
+      {showVersionHistory && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setShowVersionHistory(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Historia wersji</h2>
+                {renderName && (
+                  <p className="text-xs text-gray-400 mt-0.5">{renderName}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setShowVersionHistory(false)}
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto divide-y divide-border">
+              {[...versions].sort((a, b) => b.versionNumber - a.versionNumber).map((v) => {
+                const date = new Date(v.archivedAt);
+                const formatted = date.toLocaleDateString("pl-PL", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                });
+                return (
+                  <div key={v.id} className="flex items-center gap-4 px-6 py-4">
+                    <a
+                      href={v.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border border-border bg-muted hover:opacity-80 transition-opacity"
+                      title="Otwórz pełny rozmiar"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={v.fileUrl}
+                        alt={`Wersja ${v.versionNumber}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </a>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        Wersja {v.versionNumber}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Zarchiwizowano: {formatted}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
