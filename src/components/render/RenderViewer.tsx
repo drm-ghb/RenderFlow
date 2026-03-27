@@ -919,7 +919,7 @@ export default function RenderViewer({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{displayTitle}</span>
                         {c.isInternal && (
-                          <Lock size={11} className="text-slate-400 flex-shrink-0" title="Notatka wewnętrzna — niewidoczna dla klienta" />
+                          <Lock size={11} className="text-slate-400 flex-shrink-0" aria-label="Notatka wewnętrzna — niewidoczna dla klienta" />
                         )}
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>
                           {STATUS_LABEL[c.status]}
