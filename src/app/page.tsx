@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -10,6 +11,7 @@ export default async function Home() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
       <div className="max-w-2xl">
+        <Image src="/icon.svg" alt="RenderFlow" width={80} height={80} className="mx-auto mb-6" />
         <h1 className="text-5xl font-bold tracking-tight mb-4">
           Render<span className="text-[#19213D] dark:text-white">Flow</span>
         </h1>
