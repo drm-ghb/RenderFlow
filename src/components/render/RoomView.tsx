@@ -130,26 +130,28 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
                     />
                   </div>
                   <div className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium truncate">{render.name}</p>
-                      <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                        render.status === "ACCEPTED"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}>
-                        {render.status === "ACCEPTED" ? "Zaakceptowany" : "Do weryfikacji"}
-                      </span>
+                    <p className="text-sm font-medium truncate mb-1">{render.name}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                          render.status === "ACCEPTED"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {render.status === "ACCEPTED" ? "Zaakceptowany" : "Do weryfikacji"}
+                        </span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MessageSquare size={11} />
+                          {render.commentCount > 0 ? `${render.commentCount} uwag` : "Brak uwag"}
+                        </span>
+                      </div>
+                      <div
+                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                        onClick={(e) => e.preventDefault()}
+                      >
+                        <RenderMenu render={{ id: render.id, name: render.name }} />
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                      <MessageSquare size={11} />
-                      {render.commentCount > 0 ? `${render.commentCount} uwag` : "Brak uwag"}
-                    </p>
-                  </div>
-                  <div
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    <RenderMenu render={{ id: render.id, name: render.name }} />
                   </div>
                 </Card>
               </Link>
