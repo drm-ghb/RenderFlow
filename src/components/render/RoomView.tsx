@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArchiveRestore, LayoutGrid, List, MessageSquare, Trash2 } from "lucide-react";
+import { ArchiveRestore, Eye, LayoutGrid, List, MapPin, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,6 +16,7 @@ interface Render {
   name: string;
   fileUrl: string;
   commentCount: number;
+  viewCount: number;
   status: RenderStatus;
 }
 
@@ -140,10 +141,18 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
                         }`}>
                           {render.status === "ACCEPTED" ? "Zaakceptowany" : "Do weryfikacji"}
                         </span>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <MessageSquare size={11} />
-                          {render.commentCount > 0 ? `${render.commentCount} uwag` : "Brak uwag"}
-                        </span>
+                        {render.commentCount > 0 && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin size={11} />
+                            {render.commentCount}
+                          </span>
+                        )}
+                        {render.viewCount > 0 && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Eye size={11} />
+                            {render.viewCount}
+                          </span>
+                        )}
                       </div>
                       <div
                         className="flex-shrink-0"
@@ -173,10 +182,20 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{render.name}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MessageSquare size={10} />
-                      {render.commentCount > 0 ? `${render.commentCount} uwag` : "Brak uwag"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      {render.commentCount > 0 && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin size={10} />
+                          {render.commentCount}
+                        </span>
+                      )}
+                      {render.viewCount > 0 && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Eye size={10} />
+                          {render.viewCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Link>
                 <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${

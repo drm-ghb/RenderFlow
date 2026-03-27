@@ -596,7 +596,11 @@ export default function SharePage() {
                 {selectedRoom.renders.map((render) => (
                   <button
                     key={render.id}
-                    onClick={() => { setSelectedRender(render); setView("render"); }}
+                    onClick={() => {
+                      setSelectedRender(render);
+                      setView("render");
+                      fetch(`/api/share/${token}/renders/${render.id}/view`, { method: "POST" });
+                    }}
                     className="text-left bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all group"
                   >
                     <div className="aspect-video bg-muted overflow-hidden">

@@ -58,6 +58,7 @@ export default async function RoomPage({ params }: Props) {
           name: r.name,
           fileUrl: r.fileUrl,
           commentCount: r._count.comments,
+          viewCount: r.viewCount,
           status: r.status,
         }))}
         archivedRenders={archivedRenders.map((r) => ({
@@ -65,6 +66,7 @@ export default async function RoomPage({ params }: Props) {
           name: r.name,
           fileUrl: r.fileUrl,
           commentCount: r._count.comments,
+          viewCount: r.viewCount,
           status: r.status,
         }))}
       />

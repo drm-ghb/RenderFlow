@@ -120,6 +120,7 @@ model Render {
   order     Int          @default(0)
   archived  Boolean      @default(false)
   status    RenderStatus @default(REVIEW)
+  viewCount Int          @default(0)
   createdAt DateTime     @default(now())
   projectId String
   roomId    String?
