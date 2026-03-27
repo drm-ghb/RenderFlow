@@ -55,8 +55,7 @@ export default function EditProjectDialog({
     }
   }, [open, project]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSave() {
     if (!title.trim()) return;
     setLoading(true);
 
@@ -92,14 +91,13 @@ export default function EditProjectDialog({
         <DialogHeader>
           <DialogTitle>Edytuj projekt</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-5">
           <div className="space-y-1.5">
             <Label htmlFor="edit-title">Nazwa projektu *</Label>
             <Input
               id="edit-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
               autoFocus
             />
           </div>
@@ -118,7 +116,6 @@ export default function EditProjectDialog({
               <Label htmlFor="edit-clientEmail">Email klienta</Label>
               <Input
                 id="edit-clientEmail"
-                type="email"
                 value={clientEmail}
                 onChange={(e) => setClientEmail(e.target.value)}
                 placeholder="jan@example.com"
@@ -162,11 +159,11 @@ export default function EditProjectDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Anuluj
             </Button>
-            <Button type="submit" disabled={loading || !title.trim()}>
+            <Button type="button" disabled={loading || !title.trim()} onClick={handleSave}>
               {loading ? "Zapisywanie..." : "Zapisz"}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
