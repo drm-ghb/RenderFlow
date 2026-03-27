@@ -11,7 +11,7 @@ interface User {
   name: string | null;
   email: string;
   isAdmin: boolean;
-  createdAt: string;
+  createdAt: Date | string;
   _count: { projects: number };
 }
 
