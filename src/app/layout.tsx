@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, DM_Sans } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/theme";
@@ -19,18 +20,22 @@ export const metadata: Metadata = {
   description: "Centralizuj feedback do renderów w jednym miejscu",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const themeCookie = cookieStore.get("renderflow-theme")?.value;
+  const isDark = themeCookie === "dark";
+
   return (
-    <html lang="pl" className={`${inter.variable} ${dmSans.variable} h-full antialiased`}>
-      <head>
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('renderflow-theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();` }} />
-      </head>
-      <body className="min-h-full flex flex-col bg-background">
+    <html
+      lang="pl"
+      className={`${inter.variable} ${dmSans.variable} h-full antialiased${isDark ? " dark" : ""}`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-full flex flex-col bg-background" suppressHydrationWarning>
         <ThemeProvider>
           {children}
           <Toaster richColors />

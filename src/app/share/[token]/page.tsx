@@ -7,7 +7,7 @@ import RenderViewer from "@/components/render/RenderViewer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getRoomIcon } from "@/lib/roomIcons";
-import { ChevronLeft, MessageSquare, UserRound, Sun, Moon, Monitor, Lock } from "lucide-react";
+import { ChevronLeft, MessageSquare, UserRound, Sun, Moon, Monitor, Lock, Settings } from "lucide-react";
 import { useTheme, type Theme } from "@/lib/theme";
 import { pusherClient } from "@/lib/pusher";
 import { toast } from "sonner";
@@ -67,9 +67,12 @@ interface Project {
   allowClientAcceptance: boolean;
   requireClientEmail: boolean;
   hideCommentCount: boolean;
+  allowClientVersionRestore: boolean;
+  showProjectTitle: boolean;
   clientWelcomeMessage: string | null;
   clientLogoUrl: string | null;
   accentColor: string | null;
+  designerName: string | null;
   hasPassword: boolean;
   shareExpiresAt: string | null;
 }
@@ -99,6 +102,7 @@ export default function SharePage() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedRender, setSelectedRender] = useState<Render | null>(null);
   const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
+  const [pendingRestoreRequests, setPendingRestoreRequests] = useState<Set<string>>(new Set());
 
   function buildHeaders(): HeadersInit {
     const h: Record<string, string> = {};
@@ -256,6 +260,36 @@ export default function SharePage() {
     }
   }
 
+  async function handleVersionRestore(renderId: string, versionId: string) {
+    const res = await fetch(`/api/share/${token}/renders/${renderId}/restore-version`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...buildHeaders() },
+      body: JSON.stringify({ versionId }),
+    });
+    if (!res.ok) throw new Error("Błąd przywracania wersji");
+
+    const updated = await fetchProject(unlockedPassword ?? undefined);
+    if (updated) {
+      setProject(updated);
+      const updatedRender = updated.rooms.flatMap((r) => r.renders).find((r) => r.id === renderId);
+      if (updatedRender) setSelectedRender(updatedRender);
+    }
+  }
+
+  async function handleVersionRestoreRequest(renderId: string, versionId: string) {
+    if (pendingRestoreRequests.has(`${renderId}-${versionId}`)) return;
+    const res = await fetch(`/api/share/${token}/renders/${renderId}/version-restore-request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...buildHeaders() },
+      body: JSON.stringify({ clientName: authorName, versionId }),
+    });
+    if (res.ok) {
+      setPendingRestoreRequests((prev) => new Set([...prev, `${renderId}-${versionId}`]));
+    } else {
+      throw new Error("Błąd wysyłania prośby");
+    }
+  }
+
   async function handleRenderStatusChange(renderId: string, status: RenderStatus) {
     await fetch(`/api/share/${token}/renders/${renderId}`, {
       method: "PATCH",
@@ -266,25 +300,26 @@ export default function SharePage() {
   }
 
   const accent = project?.accentColor ?? "#2563eb";
+  const { theme, setTheme } = useTheme();
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex items-center justify-center min-h-screen bg-background">
       <p className="text-gray-400 animate-pulse">Ładowanie...</p>
     </div>
   );
 
   if (expired) return (
-    <div className="flex items-center justify-center min-h-screen text-center">
+    <div className="flex items-center justify-center min-h-screen text-center bg-background">
       <div>
         <p className="text-4xl mb-4">⏰</p>
-        <p className="text-gray-700 font-semibold">Link wygasł</p>
+        <p className="text-gray-700 dark:text-gray-200 font-semibold">Link wygasł</p>
         <p className="text-gray-400 text-sm mt-1">Ten link do podglądu projektu nie jest już aktywny.</p>
       </div>
     </div>
   );
 
   if (notFound) return (
-    <div className="flex items-center justify-center min-h-screen text-center">
+    <div className="flex items-center justify-center min-h-screen text-center bg-background">
       <div>
         <p className="text-4xl mb-4">🔍</p>
         <p className="text-gray-500">Projekt nie został znaleziony</p>
@@ -293,17 +328,17 @@ export default function SharePage() {
   );
 
   if (passwordRequired) return (
-    <div className="flex items-center justify-center min-h-screen px-4">
+    <div className="flex items-center justify-center min-h-screen px-4 bg-background">
       <div className="w-full max-w-sm text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Image src="/logo.svg" alt="RenderFlow" width={32} height={32} className="block dark:hidden" />
           <Image src="/logo-dark.svg" alt="RenderFlow" width={32} height={32} className="hidden dark:block" />
-          <h1 className="text-2xl font-bold">Render<span className="text-blue-600">Flow</span></h1>
+          <h1 className="text-2xl font-bold">Render<span className="text-[#19213D] dark:text-white">Flow</span></h1>
         </div>
         <div className="flex justify-center mb-4">
           <Lock size={20} className="text-gray-400" />
         </div>
-        <p className="text-gray-500 mb-6">Ten projekt jest chroniony hasłem</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">Ten projekt jest chroniony hasłem</p>
         <div className="flex gap-2">
           <Input
             type="password"
@@ -324,7 +359,7 @@ export default function SharePage() {
   );
 
   if (!nameSet) return (
-    <div className="flex items-center justify-center min-h-screen px-4">
+    <div className="flex items-center justify-center min-h-screen px-4 bg-background">
       <div className="w-full max-w-sm text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           {project?.clientLogoUrl ? (
@@ -334,11 +369,13 @@ export default function SharePage() {
             <>
               <Image src="/logo.svg" alt="RenderFlow" width={32} height={32} className="block dark:hidden" />
               <Image src="/logo-dark.svg" alt="RenderFlow" width={32} height={32} className="hidden dark:block" />
-              <h1 className="text-2xl font-bold">Render<span style={{ color: accent }}>Flow</span></h1>
             </>
           )}
+          {project?.designerName && (
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{project.designerName}</h1>
+          )}
         </div>
-        <p className="text-gray-500 mb-6">Podaj swoje imię aby przeglądać projekt</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">Podaj swoje imię aby przeglądać projekt</p>
         <div className="space-y-2">
           <div className="flex gap-2">
             <Input
@@ -398,6 +435,17 @@ export default function SharePage() {
           allowClientAcceptance={project.allowClientAcceptance}
           hideCommentCount={project.hideCommentCount}
           versions={selectedRender.versions.map((v) => ({ ...v, archivedAt: typeof v.archivedAt === "string" ? v.archivedAt : new Date(v.archivedAt).toISOString() }))}
+          allowClientVersionRestore={project.allowClientVersionRestore}
+          onVersionRestore={
+            project.allowClientVersionRestore
+              ? (versionId) => handleVersionRestore(selectedRender.id, versionId)
+              : undefined
+          }
+          onVersionRestoreRequest={
+            !project.allowClientVersionRestore
+              ? (versionId) => handleVersionRestoreRequest(selectedRender.id, versionId)
+              : undefined
+          }
           onRenderStatusChange={(status) => handleRenderStatusChange(selectedRender.id, status)}
           onStatusRequest={
             project.allowDirectStatusChange || pendingRequests.has(selectedRender.id)
@@ -423,35 +471,60 @@ export default function SharePage() {
               <>
                 <Image src="/logo.svg" alt="RenderFlow" width={26} height={26} className="block dark:hidden" />
                 <Image src="/logo-dark.svg" alt="RenderFlow" width={26} height={26} className="hidden dark:block" />
-                <span className="font-bold text-lg">
-                  Render<span style={{ color: accent }}>Flow</span>
-                </span>
               </>
             )}
-            <span className="text-gray-300 mx-1">|</span>
-            {view === "rooms" ? (
-              <span className="text-gray-700 font-medium">{project.title}</span>
-            ) : (
+            {project.designerName ? (
+              <span className="font-bold text-gray-900 dark:text-gray-100">{project.designerName}</span>
+            ) : !project.clientLogoUrl && (
+              <span className="font-bold text-lg">Render<span style={{ color: accent }}>Flow</span></span>
+            )}
+            {project.showProjectTitle && (
               <>
-                <button onClick={() => setView("rooms")} className="text-gray-400 hover:text-gray-700 transition-colors text-sm">
-                  {project.title}
-                </button>
-                {selectedRoom && (
+                <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span>
+                {view === "rooms" ? (
+                  <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">{project.title}</span>
+                ) : (
                   <>
-                    <span className="text-gray-300 mx-1">›</span>
-                    <span className="text-gray-700 font-medium text-sm">{selectedRoom.name}</span>
+                    <button onClick={() => setView("rooms")} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors text-sm">
+                      {project.title}
+                    </button>
+                    {selectedRoom && (
+                      <>
+                        <span className="text-gray-300 mx-1">›</span>
+                        <span className="text-gray-700 dark:text-gray-200 font-medium text-sm">{selectedRoom.name}</span>
+                      </>
+                    )}
                   </>
                 )}
               </>
             )}
+            {!project.showProjectTitle && view !== "rooms" && selectedRoom && (
+              <>
+                <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span>
+                <span className="text-gray-700 dark:text-gray-200 font-medium text-sm">{selectedRoom.name}</span>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Tryb jasny" : "Tryb ciemny"}
+              className={`relative flex items-center w-14 h-7 rounded-full transition-colors duration-300 flex-shrink-0 ${
+                theme === "dark" ? "bg-slate-700" : "bg-gray-200"
+              }`}
+            >
+              <Sun size={12} className={`absolute left-1.5 transition-opacity duration-200 ${theme === "dark" ? "opacity-30 text-gray-400" : "opacity-100 text-yellow-500"}`} />
+              <Moon size={12} className={`absolute right-1.5 transition-opacity duration-200 ${theme === "dark" ? "opacity-100 text-blue-300" : "opacity-30 text-gray-400"}`} />
+              <span className={`absolute w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${
+                theme === "dark" ? "translate-x-7" : "translate-x-1"
+              }`} />
+            </button>
             <button
               onClick={() => setView("settings")}
               title="Ustawienia"
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
             >
-              <UserRound size={15} />
+              <Settings size={15} />
               <span className="hidden sm:inline">{authorName}</span>
             </button>
           </div>
@@ -466,7 +539,6 @@ export default function SharePage() {
             onSave={(newName) => {
               localStorage.setItem("renderflow-author", newName);
               setAuthorName(newName);
-              setView("rooms");
             }}
             onBack={() => setView("rooms")}
           />
@@ -480,7 +552,7 @@ export default function SharePage() {
                 {project.clientWelcomeMessage}
               </div>
             )}
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Pomieszczenia</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Pomieszczenia</h2>
             {project.rooms.length === 0 ? (
               <p className="text-gray-400 text-center py-16">Brak pomieszczeń w tym projekcie.</p>
             ) : (
@@ -492,13 +564,13 @@ export default function SharePage() {
                     <button
                       key={room.id}
                       onClick={() => { setSelectedRoom(room); setView("room"); }}
-                      className="group text-left bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
+                      className="group text-left bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all"
                     >
-                      <div className="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
-                        <Icon size={28} className="text-orange-400" />
+                      <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-200 transition-colors">
+                        <Icon size={28} className="text-[#19213D]" />
                       </div>
-                      <p className="font-semibold text-gray-800 truncate">{room.name}</p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">{room.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         {renderCount} render{renderCount === 1 ? "" : renderCount < 5 ? "y" : "ów"}
                       </p>
                     </button>
@@ -512,10 +584,10 @@ export default function SharePage() {
         {/* Room renders view */}
         {view === "room" && selectedRoom && (
           <>
-            <button onClick={() => setView("rooms")} className="flex items-center gap-0.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6">
+            <button onClick={() => setView("rooms")} className="flex items-center gap-0.5 text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-6">
               <ChevronLeft size={15} /> {project.title}
             </button>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">{selectedRoom.name}</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">{selectedRoom.name}</h2>
 
             {selectedRoom.renders.length === 0 ? (
               <p className="text-gray-400 text-center py-16">Brak plików w tym pomieszczeniu.</p>
@@ -525,7 +597,7 @@ export default function SharePage() {
                   <button
                     key={render.id}
                     onClick={() => { setSelectedRender(render); setView("render"); }}
-                    className="text-left bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                    className="text-left bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all group"
                   >
                     <div className="aspect-video bg-muted overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -533,7 +605,7 @@ export default function SharePage() {
                     </div>
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-gray-800 truncate">{render.name}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{render.name}</p>
                         <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                           render.status === "ACCEPTED" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
                         }`}>
@@ -541,7 +613,7 @@ export default function SharePage() {
                         </span>
                       </div>
                       {!project.hideCommentCount && (
-                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
                           <MessageSquare size={11} />
                           {render.comments.length > 0 ? `${render.comments.length} uwag` : "Brak uwag"}
                         </p>
@@ -592,7 +664,7 @@ function ClientSettingsView({
         </div>
         <p className="text-xs text-gray-400">Imię widoczne przy Twoich komentarzach i prośbach do projektanta.</p>
         <div className="space-y-2">
-          <label className="text-sm text-gray-600 dark:text-gray-400">Imię wyświetlane</label>
+          <label className="text-sm text-gray-600 dark:text-gray-400">Nazwa</label>
           <Input value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="Twoje imię" onKeyDown={(e) => e.key === "Enter" && onSave(nameInput.trim())} autoFocus />
         </div>
         <Button onClick={() => { if (nameInput.trim()) onSave(nameInput.trim()); }} disabled={!nameInput.trim() || nameInput.trim() === authorName} size="sm">

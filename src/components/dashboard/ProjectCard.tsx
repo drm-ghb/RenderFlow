@@ -36,7 +36,7 @@ export default function ProjectCard({
 
   return (
     <Link href={`/projects/${id}`} className="block">
-      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+      <Card className="hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer h-full">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-lg leading-tight">{title}</CardTitle>
@@ -51,10 +51,10 @@ export default function ProjectCard({
           {(clientName || clientEmail) && (
             <div className="flex flex-col gap-0.5 mt-1">
               {clientName && (
-                <p className="text-sm text-gray-600 font-medium">{clientName}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{clientName}</p>
               )}
               {clientEmail && (
-                <p className="text-xs text-gray-400">{clientEmail}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{clientEmail}</p>
               )}
             </div>
           )}
@@ -63,7 +63,7 @@ export default function ProjectCard({
             <CardDescription className="line-clamp-2 mt-1">{description}</CardDescription>
           )}
 
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             {new Date(createdAt).toLocaleDateString("pl-PL")}
           </p>
         </CardHeader>

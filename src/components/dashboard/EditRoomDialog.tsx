@@ -88,8 +88,8 @@ export default function EditRoomDialog({
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Icon preview */}
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center">
-              <SelectedIcon size={32} className="text-orange-400" />
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center">
+              <SelectedIcon size={32} className="text-[#19213D]" />
             </div>
           </div>
 
@@ -140,7 +140,7 @@ export default function EditRoomDialog({
                       : "border-gray-200 bg-white text-gray-500 hover:border-gray-400"
                   }`}
                 >
-                  <Icon size={20} className={icon === key ? "text-white" : "text-orange-400"} />
+                  <Icon size={20} className={icon === key ? "text-white" : "text-[#19213D]"} />
                   <span className="truncate w-full text-center leading-tight">{label}</span>
                 </button>
               ))}

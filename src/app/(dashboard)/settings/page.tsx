@@ -25,6 +25,8 @@ export default async function SettingsRoute() {
       defaultRenderOrder: true,
       notifyClientOnStatusChange: true,
       notifyClientOnReply: true,
+      allowClientVersionRestore: true,
+      showProjectTitle: true,
       clientLogoUrl: true,
       clientWelcomeMessage: true,
       accentColor: true,
@@ -50,6 +52,8 @@ export default async function SettingsRoute() {
       initialDefaultRenderOrder={user.defaultRenderOrder}
       initialNotifyClientOnStatusChange={user.notifyClientOnStatusChange}
       initialNotifyClientOnReply={user.notifyClientOnReply}
+      initialAllowClientVersionRestore={user.allowClientVersionRestore}
+      initialShowProjectTitle={user.showProjectTitle}
       initialClientLogoUrl={user.clientLogoUrl}
       initialClientWelcomeMessage={user.clientWelcomeMessage}
       initialAccentColor={user.accentColor}

@@ -21,7 +21,9 @@ type BoolField =
   | "autoClosePinsOnAccept"
   | "autoArchiveOnAccept"
   | "notifyClientOnStatusChange"
-  | "notifyClientOnReply";
+  | "notifyClientOnReply"
+  | "allowClientVersionRestore"
+  | "showProjectTitle";
 
 interface Props {
   initialName: string;
@@ -39,6 +41,8 @@ interface Props {
   initialDefaultRenderOrder: string;
   initialNotifyClientOnStatusChange: boolean;
   initialNotifyClientOnReply: boolean;
+  initialAllowClientVersionRestore: boolean;
+  initialShowProjectTitle: boolean;
   initialClientLogoUrl: string | null;
   initialClientWelcomeMessage: string | null;
   initialAccentColor: string | null;
@@ -112,6 +116,8 @@ export function SettingsPage({
   initialDefaultRenderOrder,
   initialNotifyClientOnStatusChange,
   initialNotifyClientOnReply,
+  initialAllowClientVersionRestore,
+  initialShowProjectTitle,
   initialClientLogoUrl,
   initialClientWelcomeMessage,
   initialAccentColor,
@@ -141,6 +147,8 @@ export function SettingsPage({
     autoArchiveOnAccept: initialAutoArchiveOnAccept,
     notifyClientOnStatusChange: initialNotifyClientOnStatusChange,
     notifyClientOnReply: initialNotifyClientOnReply,
+    allowClientVersionRestore: initialAllowClientVersionRestore,
+    showProjectTitle: initialShowProjectTitle,
   });
 
   // Non-boolean settings
@@ -290,7 +298,7 @@ export function SettingsPage({
               <h3 className="font-semibold text-gray-800 dark:text-gray-200">Profil</h3>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">Imię wyświetlane</label>
+              <label className="text-sm text-gray-600 dark:text-gray-400">Nazwa</label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Twoje imię" onKeyDown={(e) => e.key === "Enter" && handleNameSave()} />
             </div>
             <Button onClick={handleNameSave} disabled={nameLoading || !name.trim() || name.trim() === initialName} size="sm">
@@ -376,6 +384,12 @@ export function SettingsPage({
             description="Klient nie widzi liczby pinów na liście renderów."
             checked={bools.hideCommentCount}
             onToggle={() => toggleBool("hideCommentCount")}
+          />
+          <SettingRow
+            label="Samodzielne przywracanie wersji przez klienta"
+            description="Klient może bezpośrednio przywrócić poprzednią wersję renderu. Gdy wyłączone — klient wysyła prośbę do projektanta."
+            checked={bools.allowClientVersionRestore}
+            onToggle={() => toggleBool("allowClientVersionRestore")}
           />
         </div>
       </section>
@@ -504,6 +518,14 @@ export function SettingsPage({
         <SectionHeader title="Wygląd dla klienta" />
 
         <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
+          {/* Show project title */}
+          <SettingRow
+            label="Wyświetlaj nazwę projektu"
+            description="Nazwa projektu jest widoczna obok logo i nazwy studia na stronie klienta."
+            checked={bools.showProjectTitle}
+            onToggle={() => toggleBool("showProjectTitle")}
+          />
+
           {/* Logo */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -530,7 +552,7 @@ export function SettingsPage({
                 }}
                 onUploadError={() => { toast.error("Błąd przesyłania logo"); }}
                 appearance={{
-                  button: "ut-ready:bg-primary ut-ready:text-primary-foreground text-sm px-4 py-2 rounded-lg font-medium",
+                  button: "bg-primary text-primary-foreground hover:opacity-90 text-sm px-4 py-2 rounded-lg font-medium",
                   allowedContent: "text-xs text-gray-400",
                 }}
               />

@@ -120,7 +120,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders }
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {renders.map((render) => (
               <Link key={render.id} href={`/projects/${projectId}/renders/${render.id}`}>
-                <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer group relative">
+                <Card className="overflow-hidden hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer group relative">
                   <div className="aspect-video bg-muted overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img

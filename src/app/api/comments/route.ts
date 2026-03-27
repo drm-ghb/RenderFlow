@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: NextRequest) {
-  const { renderId, title, content, posX, posY, author } = await req.json();
+  const { renderId, title, content, posX, posY, author, isInternal } = await req.json();
 
   if (!renderId || !content || posX === undefined || posY === undefined || !author) {
     return NextResponse.json({ error: "Brakujące pola" }, { status: 400 });
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   const comment = await prisma.comment.create({
-    data: { renderId, title: title || null, content, posX, posY, author },
+    data: { renderId, title: title || null, content, posX, posY, author, isInternal: isInternal ?? false },
   });
 
   await pusherServer.trigger(`render-${renderId}`, "new-comment", comment);

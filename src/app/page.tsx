@@ -11,7 +11,7 @@ export default async function Home() {
     <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
       <div className="max-w-2xl">
         <h1 className="text-5xl font-bold tracking-tight mb-4">
-          Render<span className="text-blue-600">Flow</span>
+          Render<span className="text-[#19213D] dark:text-white">Flow</span>
         </h1>
         <p className="text-xl text-gray-600 mb-8">
           Centralizuj feedback do wizualizacji wnętrz. Komentarze przypięte

@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
           archivedAt: now,
         },
       }),
+      prisma.comment.deleteMany({ where: { renderId: existing.id } }),
       prisma.render.update({
         where: { id: existing.id },
         data: { fileUrl, fileKey },

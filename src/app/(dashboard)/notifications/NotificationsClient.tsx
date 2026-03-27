@@ -62,6 +62,7 @@ function NotificationRow({
   }
 
   const isStatusRequest = n.type === "status_request";
+  const isVersionRestoreRequest = n.type === "version_restore_request";
 
   return (
     <div className={`flex items-start gap-3 px-4 py-3.5 ${!n.read ? "bg-blue-50/40" : ""}`}>
@@ -82,7 +83,7 @@ function NotificationRow({
           <p className="text-xs text-gray-400 mt-0.5">
             {new Date(n.createdAt).toLocaleString("pl-PL")}
           </p>
-          {isStatusRequest && !requestResolved && (
+          {(isStatusRequest || isVersionRestoreRequest) && !requestResolved && (
             <div className="flex gap-2 mt-2">
               <Button
                 size="sm"
@@ -103,7 +104,7 @@ function NotificationRow({
               </Button>
             </div>
           )}
-          {isStatusRequest && requestResolved && (
+          {(isStatusRequest || isVersionRestoreRequest) && requestResolved && (
             <p className="text-xs text-gray-400 mt-1 italic">Prośba rozpatrzona</p>
           )}
         </div>
@@ -228,6 +229,19 @@ export default function NotificationsClient({ userId }: { userId: string }) {
     }
   }
 
+  async function handleVersionRestoreRequestAction(notifId: string, requestId: string, action: "confirm" | "reject") {
+    const res = await fetch(`/api/version-restore-requests/${requestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    if (res.ok) {
+      setResolvedRequests((prev) => new Set([...prev, requestId]));
+      setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true } : n)));
+      dispatchUpdate();
+    }
+  }
+
   const allSelected = filtered.length > 0 && selected.size === filtered.length;
 
   return (
@@ -330,8 +344,20 @@ export default function NotificationsClient({ userId }: { userId: string }) {
               selected={selected.has(n.id)}
               onToggle={() => toggleSelect(n.id)}
               onSee={() => handleSee(n.id)}
-              onConfirm={n.requestId ? () => handleStatusRequestAction(n.id, n.requestId!, "confirm") : undefined}
-              onReject={n.requestId ? () => handleStatusRequestAction(n.id, n.requestId!, "reject") : undefined}
+              onConfirm={
+                n.requestId
+                  ? n.type === "version_restore_request"
+                    ? () => handleVersionRestoreRequestAction(n.id, n.requestId!, "confirm")
+                    : () => handleStatusRequestAction(n.id, n.requestId!, "confirm")
+                  : undefined
+              }
+              onReject={
+                n.requestId
+                  ? n.type === "version_restore_request"
+                    ? () => handleVersionRestoreRequestAction(n.id, n.requestId!, "reject")
+                    : () => handleStatusRequestAction(n.id, n.requestId!, "reject")
+                  : undefined
+              }
               requestResolved={n.requestId ? resolvedRequests.has(n.requestId) : false}
             />
           ))}

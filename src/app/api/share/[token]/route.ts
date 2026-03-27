@@ -12,6 +12,7 @@ export async function GET(
     include: {
       user: {
         select: {
+          name: true,
           allowDirectStatusChange: true,
           allowClientComments: true,
           allowClientAcceptance: true,
@@ -23,6 +24,8 @@ export async function GET(
           defaultRenderOrder: true,
           notifyClientOnStatusChange: true,
           notifyClientOnReply: true,
+          allowClientVersionRestore: true,
+          showProjectTitle: true,
         },
       },
       rooms: {
@@ -34,6 +37,7 @@ export async function GET(
             orderBy: { order: "asc" },
             include: {
               comments: {
+                where: { isInternal: false },
                 orderBy: { createdAt: "asc" },
                 include: { replies: { orderBy: { createdAt: "asc" } } },
               },
@@ -66,9 +70,11 @@ export async function GET(
   }
 
   const { user, sharePassword, shareExpiresAt, ...rest } = project;
+  const { name: designerName, ...userSettings } = user;
   return NextResponse.json({
     ...rest,
-    ...user,
+    ...userSettings,
+    designerName,
     hasPassword: !!project.sharePassword,
     shareExpiresAt: project.shareExpiresAt?.toISOString() ?? null,
   });

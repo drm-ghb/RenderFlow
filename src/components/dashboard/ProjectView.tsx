@@ -134,8 +134,8 @@ export default function ProjectView({ projectId, rooms, archivedRooms }: Project
                     i !== rooms.length - 1 ? "border-b border-gray-100" : ""
                   }`}
                 >
-                  <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Icon size={16} className="text-orange-400" />
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Icon size={16} className="text-[#19213D]" />
                   </div>
                   <a href={`/projects/${projectId}/rooms/${room.id}`} className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{room.name}</p>

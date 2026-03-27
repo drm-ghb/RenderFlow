@@ -20,14 +20,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const root = document.documentElement;
 
+    const applyDark = (dark: boolean) => {
+      root.classList.toggle("dark", dark);
+      document.cookie = `renderflow-theme=${dark ? "dark" : "light"}; path=/; max-age=31536000; SameSite=Lax`;
+    };
+
     if (theme === "dark") {
-      root.classList.add("dark");
+      applyDark(true);
       localStorage.setItem("renderflow-theme", "dark");
       return;
     }
 
     if (theme === "light") {
-      root.classList.remove("dark");
+      applyDark(false);
       localStorage.setItem("renderflow-theme", "light");
       return;
     }
@@ -35,9 +40,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // system
     localStorage.setItem("renderflow-theme", "system");
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    root.classList.toggle("dark", mq.matches);
+    applyDark(mq.matches);
 
-    const handler = (e: MediaQueryListEvent) => root.classList.toggle("dark", e.matches);
+    const handler = (e: MediaQueryListEvent) => applyDark(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [theme]);

@@ -7,11 +7,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { status } = await req.json();
+  const body = await req.json();
+  const data: Record<string, unknown> = {};
+  if (body.status !== undefined) data.status = body.status;
+  if (body.isInternal !== undefined) data.isInternal = body.isInternal;
 
   const comment = await prisma.comment.update({
     where: { id },
-    data: { status },
+    data,
   });
 
   await pusherServer.trigger(
