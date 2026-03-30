@@ -291,7 +291,7 @@ export function SettingsPage({
       <section className="space-y-4">
         <SectionHeader title="Ustawienia konta" />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2">
               <User size={16} className="text-gray-400" />
@@ -330,7 +330,7 @@ export function SettingsPage({
             <Lock size={16} className="text-gray-400" />
             <h3 className="font-semibold text-gray-800 dark:text-gray-200">Hasło</h3>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm text-gray-600 dark:text-gray-400">Aktualne hasło</label>
               <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
