@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Briefcase, Image as ImageIcon, ShoppingCart, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Briefcase, Image as ImageIcon, ShoppingCart, ChevronRight, SlidersHorizontal, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewProjectDialog from "@/components/dashboard/NewProjectDialog";
 import ProjektyMenu from "@/components/projekty/ProjektyMenu";
@@ -26,21 +26,24 @@ type SortOption = "newest" | "oldest" | "az" | "za" | "renders";
 
 export default function ProjektyView({ projects }: ProjektyViewProps) {
   const [sort, setSort] = useState<SortOption>("newest");
+  const [search, setSearch] = useState("");
 
-  const sorted = [...projects].sort((a, b) => {
-    switch (sort) {
-      case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      case "az":     return a.title.localeCompare(b.title, "pl");
-      case "za":     return b.title.localeCompare(a.title, "pl");
-      case "renders": return b.renderCount - a.renderCount;
-      default:       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    }
-  });
+  const filtered = projects
+    .filter((p) => p.title.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      switch (sort) {
+        case "oldest":  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "az":      return a.title.localeCompare(b.title, "pl");
+        case "za":      return b.title.localeCompare(a.title, "pl");
+        case "renders": return b.renderCount - a.renderCount;
+        default:        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
 
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
         <div>
           <h1 className="text-2xl font-bold">Projekty</h1>
           <p className="text-gray-500 mt-1">
@@ -49,42 +52,55 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
               : `${projects.length} projekt${projects.length === 1 ? "" : projects.length < 5 ? "y" : "ów"}`}
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:self-start">
-          {projects.length > 0 && (
-            <>
-              {/* Mobile: icon-only */}
-              <div className={`relative sm:hidden w-8 h-8 flex items-center justify-center rounded-md border ${sort !== "newest" ? "border-gray-900 bg-gray-900" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-card"}`}>
-                <SlidersHorizontal size={14} className={`pointer-events-none ${sort !== "newest" ? "text-white" : "text-gray-500"}`} />
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortOption)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  aria-label="Sortowanie"
-                >
-                  <option value="newest">Najnowsze</option>
-                  <option value="oldest">Najstarsze</option>
-                  <option value="az">A–Z</option>
-                  <option value="za">Z–A</option>
-                  <option value="renders">Najwięcej renderów</option>
-                </select>
-              </div>
-              {/* Desktop: full select */}
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as SortOption)}
-                className="hidden sm:block text-xs border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 bg-white dark:bg-card text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
-              >
-                <option value="newest">Najnowsze</option>
-                <option value="oldest">Najstarsze</option>
-                <option value="az">A–Z</option>
-                <option value="za">Z–A</option>
-                <option value="renders">Najwięcej renderów</option>
-              </select>
-            </>
-          )}
-          <NewProjectDialog />
-        </div>
+        <NewProjectDialog />
       </div>
+
+      {/* Toolbar: search + sort */}
+      {projects.length > 0 && (
+        <div className="flex items-center gap-2 mb-6">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Szukaj projektu..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-card focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+            />
+          </div>
+
+          {/* Sort: mobile icon-only */}
+          <div className={`relative sm:hidden w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md border ${sort !== "newest" ? "border-gray-900 bg-gray-900" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-card"}`}>
+            <SlidersHorizontal size={14} className={`pointer-events-none ${sort !== "newest" ? "text-white" : "text-gray-500"}`} />
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortOption)}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              aria-label="Sortowanie"
+            >
+              <option value="newest">Najnowsze</option>
+              <option value="oldest">Najstarsze</option>
+              <option value="az">A–Z</option>
+              <option value="za">Z–A</option>
+              <option value="renders">Najwięcej renderów</option>
+            </select>
+          </div>
+
+          {/* Sort: desktop full select */}
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="hidden sm:block flex-shrink-0 text-xs border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 bg-white dark:bg-card text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+          >
+            <option value="newest">Najnowsze</option>
+            <option value="oldest">Najstarsze</option>
+            <option value="az">A–Z</option>
+            <option value="za">Z–A</option>
+            <option value="renders">Najwięcej renderów</option>
+          </select>
+        </div>
+      )}
 
       {/* Empty state */}
       {projects.length === 0 ? (
@@ -99,6 +115,11 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
             Kliknij „Nowy projekt" aby stworzyć pierwszy projekt i podpiąć do niego zasoby z modułów.
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-4xl mb-4">🔍</p>
+          <p className="text-lg">Brak projektów pasujących do &quot;{search}&quot;</p>
+        </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           {/* Table header */}
@@ -110,11 +131,11 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
           </div>
 
           {/* Rows */}
-          {sorted.map((p, i) => (
+          {filtered.map((p, i) => (
             <div
               key={p.id}
               className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors ${
-                i !== sorted.length - 1 ? "border-b border-border" : ""
+                i !== filtered.length - 1 ? "border-b border-border" : ""
               }`}
             >
               {/* Title + client */}
