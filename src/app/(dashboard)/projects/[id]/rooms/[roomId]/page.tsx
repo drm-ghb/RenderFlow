@@ -45,7 +45,7 @@ export default async function RoomPage({ params }: Props) {
         { label: room.name },
       ]} />
 
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6 sm:mb-8">
         <div>
           <h1 className="text-2xl font-bold">{room.name}</h1>
           <p className="text-sm text-gray-400 mt-0.5">{renders.length} {renders.length === 1 ? "render" : "renderów"}</p>

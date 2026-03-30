@@ -90,7 +90,7 @@ export default function ProjectsView({ projects, archivedProjects }: ProjectsVie
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold">Moje projekty</h1>
           <p className="text-gray-500 mt-1">
@@ -193,7 +193,7 @@ export default function ProjectsView({ projects, archivedProjects }: ProjectsVie
             <p className="text-lg">Brak projektów pasujących do &quot;{search}&quot;</p>
           </div>
         ) : view === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             {filtered.map((p) => (
               <ProjectCard key={p.id} {...p} />
             ))}
@@ -261,10 +261,10 @@ function ProjectListView({ projects }: { projects: Project[] }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-[1fr_180px_160px_80px] gap-4 px-5 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-400 uppercase tracking-wide">
+      <div className="grid grid-cols-[1fr_80px] sm:grid-cols-[1fr_180px_160px_80px] gap-4 px-5 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-400 uppercase tracking-wide">
         <span>Projekt</span>
-        <span>Klient</span>
-        <span>Data</span>
+        <span className="hidden sm:block">Klient</span>
+        <span className="hidden sm:block">Data</span>
         <span className="text-right">Akcje</span>
       </div>
 
@@ -272,7 +272,7 @@ function ProjectListView({ projects }: { projects: Project[] }) {
       {projects.map((p, i) => (
         <div
           key={p.id}
-          className={`grid grid-cols-[1fr_180px_160px_80px] gap-4 px-5 py-4 items-center hover:bg-gray-50 transition-colors ${i !== projects.length - 1 ? "border-b border-gray-100" : ""}`}
+          className={`grid grid-cols-[1fr_80px] sm:grid-cols-[1fr_180px_160px_80px] gap-4 px-5 py-4 items-center hover:bg-gray-50 transition-colors ${i !== projects.length - 1 ? "border-b border-gray-100" : ""}`}
         >
           {/* Title + description */}
           <div className="min-w-0">
@@ -286,7 +286,7 @@ function ProjectListView({ projects }: { projects: Project[] }) {
           </div>
 
           {/* Client */}
-          <div className="min-w-0">
+          <div className="hidden sm:block min-w-0">
             {p.clientName ? (
               <>
                 <p className="text-sm text-gray-700 truncate">{p.clientName}</p>
@@ -298,7 +298,7 @@ function ProjectListView({ projects }: { projects: Project[] }) {
           </div>
 
           {/* Date */}
-          <p className="text-sm text-gray-400">
+          <p className="hidden sm:block text-sm text-gray-400">
             {new Date(p.createdAt).toLocaleDateString("pl-PL", {
               day: "2-digit",
               month: "short",

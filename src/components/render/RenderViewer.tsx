@@ -618,12 +618,12 @@ export default function RenderViewer({
                 <>
                   <Link
                     href={`/projects/${projectId}`}
-                    className="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors font-medium truncate max-w-[120px]"
+                    className="hidden sm:block flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors font-medium truncate max-w-[120px]"
                     title={projectTitle}
                   >
                     {projectTitle}
                   </Link>
-                  <ChevronLeft size={13} className="flex-shrink-0 text-gray-300 rotate-180" />
+                  <ChevronLeft size={13} className="hidden sm:block flex-shrink-0 text-gray-300 rotate-180" />
                 </>
               )}
               {/* Room */}
@@ -631,12 +631,12 @@ export default function RenderViewer({
                 <>
                   <Link
                     href={`/projects/${projectId}/rooms/${roomId}`}
-                    className="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors font-medium truncate max-w-[120px]"
+                    className="hidden sm:block flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors font-medium truncate max-w-[120px]"
                     title={roomName}
                   >
                     {roomName}
                   </Link>
-                  <ChevronLeft size={13} className="flex-shrink-0 text-gray-300 rotate-180" />
+                  <ChevronLeft size={13} className="hidden sm:block flex-shrink-0 text-gray-300 rotate-180" />
                 </>
               )}
               {/* Folder */}
@@ -664,29 +664,29 @@ export default function RenderViewer({
 
         <div className="ml-auto flex items-center gap-2 flex-shrink-0">
           {!hideCommentCount && todoCount > 0 && (
-            <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded-md">
+            <span className="hidden sm:inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded-md">
               {todoCount} to do
             </span>
           )}
           {!hideCommentCount && inProgressCount > 0 && (
-            <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded-md">
+            <span className="hidden sm:inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded-md">
               {inProgressCount} in progress
             </span>
           )}
           {!hideCommentCount && doneCount > 0 && (
-            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-md">
+            <span className="hidden sm:inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-md">
               {doneCount} done
             </span>
           )}
 
           {isDesigner && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground" title="Ilość wyświetleń pliku przez klienta">
+            <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground" title="Ilość wyświetleń pliku przez klienta">
               <Eye size={13} />
               {viewCount}
             </span>
           )}
 
-          <div className="w-px h-4 bg-gray-200 mx-1" />
+          <div className="hidden sm:block w-px h-4 bg-gray-200 mx-1" />
 
           {isDesigner ? (
             <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
@@ -745,20 +745,19 @@ export default function RenderViewer({
             </span>
           )}
 
-          <div className="w-px h-4 bg-gray-200 mx-1" />
+          <div className="hidden sm:block w-px h-4 bg-gray-200 mx-1" />
 
           <button
             onClick={() => setShowVersionHistory(true)}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-transparent text-gray-500 hover:bg-muted transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-transparent text-gray-500 hover:bg-muted transition-colors"
             title="Historia wersji"
           >
             <History size={14} /> Wersje{versions.length > 0 ? ` (${versions.length})` : ""}
           </button>
 
-
           <button
             onClick={openLightbox}
-            className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
+            className={`hidden sm:flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
               lightboxOpen
                 ? "bg-gray-900 text-white border-gray-900"
                 : "border-transparent text-gray-500 dark:text-gray-400 hover:bg-muted"
@@ -810,7 +809,7 @@ export default function RenderViewer({
       <div className="flex flex-1 min-h-0">
         {/* Thumbnails sidebar */}
         {isDesigner && (
-          <div className="w-44 border-r bg-card flex flex-col flex-shrink-0 overflow-hidden">
+          <div className="hidden md:flex w-44 border-r bg-card flex-col flex-shrink-0 overflow-hidden">
             <div className="px-3 py-2.5 border-b flex-shrink-0 flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                 Pliki ({roomRenders.length})
@@ -871,7 +870,7 @@ export default function RenderViewer({
               <ChevronRight size={20} />
             </button>
           )}
-          <div className="absolute inset-0 overflow-auto flex items-start justify-center p-6">
+          <div className="absolute inset-0 overflow-auto flex items-start justify-center p-2 sm:p-6">
           <div
             ref={imgRef}
             className={`relative select-none ${mode === "pin" ? "cursor-crosshair" : "cursor-default"}`}
@@ -1124,7 +1123,13 @@ export default function RenderViewer({
         </div>
 
         {/* Sidebar */}
-        {showComments && <div className="w-72 border-l bg-card flex flex-col flex-shrink-0">
+        {showComments && <>
+          {/* Mobile backdrop */}
+          <div
+            className="fixed inset-0 z-20 bg-black/30 md:hidden"
+            onClick={() => { setShowComments(false); sessionStorage.setItem("renderflow_showComments", "false"); }}
+          />
+          <div className="fixed md:relative inset-y-0 right-0 z-30 md:z-auto w-72 md:w-72 md:flex-shrink-0 border-l bg-card flex flex-col shadow-xl md:shadow-none">
           <div className="px-4 py-3 border-b flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -1233,7 +1238,8 @@ export default function RenderViewer({
               });
             })()}
           </div>
-        </div>}
+        </div>
+        </>}
       </div>
 
       {/* Lightbox */}

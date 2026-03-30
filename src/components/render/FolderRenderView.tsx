@@ -54,7 +54,7 @@ export default function FolderRenderView({ projectId, renders }: FolderRenderVie
       </div>
 
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
           {renders.map((render) => (
             <Link key={render.id} href={`/projects/${projectId}/renders/${render.id}`}>
               <Card className="overflow-hidden hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer group relative">

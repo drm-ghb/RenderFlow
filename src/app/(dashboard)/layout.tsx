@@ -26,7 +26,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="bg-card border-b">
-        <div className="container mx-auto px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
+        <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
 
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
@@ -71,7 +71,7 @@ export default async function DashboardLayout({
 
         </div>
       </nav>
-      <main className="flex-1 container mx-auto px-6 py-8 max-w-6xl">
+      <main className="flex-1 container mx-auto px-3 sm:px-6 py-4 sm:py-8 max-w-6xl">
         {children}
       </main>
     </div>

@@ -464,7 +464,7 @@ export default function SharePage() {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Nav */}
       <nav className="bg-card border-b flex-shrink-0">
-        <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-3">
+        <div className="flex items-center justify-between max-w-5xl mx-auto px-3 sm:px-6 py-3">
           <div className="flex items-center gap-2">
             {project.clientLogoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -533,7 +533,7 @@ export default function SharePage() {
         </div>
       </nav>
 
-      <div className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+      <div className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-8">
         {/* Settings view */}
         {view === "settings" && (
           <ClientSettingsView
@@ -558,7 +558,7 @@ export default function SharePage() {
             {project.rooms.length === 0 ? (
               <p className="text-gray-400 text-center py-16">Brak pomieszczeń w tym projekcie.</p>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                 {project.rooms.map((room) => {
                   const Icon = getRoomIcon(room.type, room.icon);
                   const renderCount = room.renders.length;
@@ -594,7 +594,7 @@ export default function SharePage() {
             {selectedRoom.renders.length === 0 ? (
               <p className="text-gray-400 text-center py-16">Brak plików w tym pomieszczeniu.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                 {selectedRoom.renders.map((render) => (
                   <button
                     key={render.id}

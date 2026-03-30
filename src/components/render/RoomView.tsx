@@ -133,7 +133,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
           <div className="space-y-8">
             {/* Folder tiles */}
             {folders.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                 {folders.map((folder) => (
                   <FolderCard key={folder.id} folder={folder} projectId={projectId} roomId={roomId} />
                 ))}
@@ -149,7 +149,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
                   </p>
                 )}
                 {viewMode === "grid" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                     {ungrouped.map((render) => (
                       <Link key={render.id} href={`/projects/${projectId}/renders/${render.id}`}>
                         <Card className="overflow-hidden hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer group relative">
@@ -246,7 +246,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
           <p className="text-lg">Brak zarchiwizowanych renderów</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
           {archivedRenders.map((render) => (
             <Card key={render.id} className="overflow-hidden opacity-60">
               <div className="aspect-video bg-muted overflow-hidden">

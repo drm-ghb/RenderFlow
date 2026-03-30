@@ -41,7 +41,7 @@ export default async function ProjectPage({ params }: Props) {
         { label: project.title },
       ]} />
 
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6 sm:mb-8">
         <div>
           <h1 className="text-2xl font-bold">{project.title}</h1>
           {(project.clientName || project.description) && (
