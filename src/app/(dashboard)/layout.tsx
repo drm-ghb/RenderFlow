@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutGrid, Settings, ShieldCheck } from "lucide-react";
+import { LayoutGrid, Settings, ShieldCheck, Grid2x2 } from "lucide-react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import MobileMenu from "@/components/dashboard/MobileMenu";
@@ -27,6 +27,15 @@ export default async function DashboardLayout({
     <div className="min-h-screen flex flex-col">
       <nav className="bg-card border-b">
         <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
+
+          {/* Home (Planospace launcher) */}
+          <Link
+            href="/home"
+            title="Planospace"
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-muted shrink-0"
+          >
+            <Grid2x2 size={18} />
+          </Link>
 
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">

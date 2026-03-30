@@ -29,7 +29,7 @@ export default function LoginPage() {
     if (result?.error) {
       toast.error("Nieprawidłowy email lub hasło");
     } else {
-      router.push("/dashboard");
+      router.push("/home");
       router.refresh();
     }
     setLoading(false);
