@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Briefcase, Image as ImageIcon, ShoppingCart, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewProjectDialog from "@/components/dashboard/NewProjectDialog";
+import ProjektyMenu from "@/components/projekty/ProjektyMenu";
 
 interface Project {
   id: string;
@@ -55,7 +56,7 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           {/* Table header */}
-          <div className="hidden sm:grid grid-cols-[1fr_140px_200px_80px] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <div className="hidden sm:grid grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
             <span>Projekt</span>
             <span>Data</span>
             <span>Moduły</span>
@@ -66,7 +67,7 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
           {projects.map((p, i) => (
             <div
               key={p.id}
-              className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_140px_200px_80px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors ${
+              className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors ${
                 i !== projects.length - 1 ? "border-b border-border" : ""
               }`}
             >
@@ -110,13 +111,14 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end gap-1">
                 <Link href={`/projects/${p.id}`}>
                   <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1">
                     <span className="hidden sm:inline text-xs">Otwórz</span>
                     <ChevronRight size={14} />
                   </Button>
                 </Link>
+                <ProjektyMenu project={p} />
               </div>
             </div>
           ))}
