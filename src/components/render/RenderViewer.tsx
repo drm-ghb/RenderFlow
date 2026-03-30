@@ -110,11 +110,33 @@ function formatDate(iso: string) {
   });
 }
 
-function popupPosition(x: number, y: number) {
-  return {
-    left: x > 55 ? `calc(${x}% - 284px)` : `calc(${x}% + 24px)`,
-    top: y > 60 ? `calc(${y}% - 220px)` : `calc(${y}% + 10px)`,
-  };
+function getPopupStyle(
+  x: number,
+  y: number,
+  imgEl: HTMLElement | null,
+  popupWidth = 288,
+): React.CSSProperties {
+  if (!imgEl || typeof window === "undefined") {
+    return {
+      left: x > 55 ? `calc(${x}% - ${popupWidth}px)` : `calc(${x}% + 24px)`,
+      top: y > 60 ? `calc(${y}% - 220px)` : `calc(${y}% + 10px)`,
+    };
+  }
+  const rect = imgEl.getBoundingClientRect();
+  const popupH = 400;
+  const pad = 8;
+  const pinX = rect.left + (x / 100) * rect.width;
+  const pinY = rect.top + (y / 100) * rect.height;
+
+  let left = pinX + 24;
+  if (left + popupWidth > window.innerWidth - pad) left = pinX - popupWidth - 8;
+  left = Math.max(pad, Math.min(left, window.innerWidth - popupWidth - pad));
+
+  let top = pinY - 20;
+  if (top + popupH > window.innerHeight - pad) top = window.innerHeight - popupH - pad;
+  top = Math.max(pad, top);
+
+  return { position: "fixed", left, top };
 }
 
 export default function RenderViewer({
@@ -896,8 +918,8 @@ export default function RenderViewer({
             {/* New comment popup */}
             {pending && (
               <div
-                className="absolute z-20 bg-card rounded-xl shadow-xl border border-border p-4 w-64"
-                style={popupPosition(pending.x, pending.y)}
+                className="fixed z-50 bg-card rounded-xl shadow-xl border border-border p-4 w-64"
+                style={getPopupStyle(pending.x, pending.y, imgRef.current, 256)}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-3">
@@ -951,9 +973,9 @@ export default function RenderViewer({
             {/* Thread popup for existing pin */}
             {selectedComment && (
               <div
-                className="absolute z-20 bg-card rounded-xl shadow-xl border border-border w-72 flex flex-col"
+                className="fixed z-50 bg-card rounded-xl shadow-xl border border-border w-72 flex flex-col"
                 style={{
-                  ...popupPosition(selectedComment.posX, selectedComment.posY),
+                  ...getPopupStyle(selectedComment.posX, selectedComment.posY, imgRef.current),
                   maxHeight: "360px",
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -1356,8 +1378,8 @@ export default function RenderViewer({
               {/* New comment popup */}
               {pending && (
                 <div
-                  className="absolute z-20 bg-card rounded-xl shadow-xl border border-border p-4 w-64"
-                  style={popupPosition(pending.x, pending.y)}
+                  className="fixed z-50 bg-card rounded-xl shadow-xl border border-border p-4 w-64"
+                  style={getPopupStyle(pending.x, pending.y, lightboxImgRef.current, 256)}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -1397,9 +1419,9 @@ export default function RenderViewer({
               {/* Thread popup for existing pin */}
               {selectedComment && !pending && (
                 <div
-                  className="absolute z-20 bg-card rounded-xl shadow-xl border border-border w-72 flex flex-col"
+                  className="fixed z-50 bg-card rounded-xl shadow-xl border border-border w-72 flex flex-col"
                   style={{
-                    ...popupPosition(selectedComment.posX, selectedComment.posY),
+                    ...getPopupStyle(selectedComment.posX, selectedComment.posY, lightboxImgRef.current),
                     maxHeight: "360px",
                   }}
                   onClick={(e) => e.stopPropagation()}
