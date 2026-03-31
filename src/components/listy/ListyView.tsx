@@ -20,7 +20,11 @@ interface ListyViewProps {
 
 type SortOption = "newest" | "oldest" | "az" | "za";
 
-function copyShareLink(shareToken: string) {
+function copyShareLink(shareToken: string | null | undefined) {
+  if (!shareToken) {
+    toast.error("Brak tokenu udostępniania – odśwież stronę");
+    return;
+  }
   const url = `${window.location.origin}/share/list/${shareToken}`;
   navigator.clipboard.writeText(url);
   toast.success("Link skopiowany do schowka");
