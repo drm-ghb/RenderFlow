@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import RenderViewer from "@/components/render/RenderViewer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getRoomIcon } from "@/lib/roomIcons";
-import { ChevronLeft, MessageSquare, UserRound, Sun, Moon, Monitor, Lock, Settings } from "lucide-react";
+import { ChevronLeft, MessageSquare, UserRound, Sun, Moon, Monitor, Lock, Settings, LayoutGrid } from "lucide-react";
 import { useTheme, type Theme } from "@/lib/theme";
 import { pusherClient } from "@/lib/pusher";
 import { toast } from "sonner";
@@ -465,7 +466,14 @@ export default function SharePage() {
       {/* Nav */}
       <nav className="bg-card border-b flex-shrink-0">
         <div className="flex items-center justify-between max-w-5xl mx-auto px-3 sm:px-6 py-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/share/${token}/home`}
+              title="Strona główna projektu"
+              className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"
+            >
+              <LayoutGrid size={20} />
+            </Link>
             {project.clientLogoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={project.clientLogoUrl} alt="Logo" className="h-8 object-contain" />

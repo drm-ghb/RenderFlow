@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Briefcase, Image as ImageIcon, ShoppingCart, ChevronRight, SlidersHorizontal, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Briefcase, Image as ImageIcon, ShoppingCart, ChevronRight, SlidersHorizontal, Search, ArchiveRestore, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import NewProjectDialog from "@/components/dashboard/NewProjectDialog";
 import ProjektyMenu from "@/components/projekty/ProjektyMenu";
 
@@ -20,25 +22,51 @@ interface Project {
 
 interface ProjektyViewProps {
   projects: Project[];
+  archivedProjects: Project[];
 }
 
 type SortOption = "newest" | "oldest" | "az" | "za" | "renders";
+type Tab = "active" | "archived";
 
-export default function ProjektyView({ projects }: ProjektyViewProps) {
+export default function ProjektyView({ projects, archivedProjects }: ProjektyViewProps) {
+  const [tab, setTab] = useState<Tab>("active");
   const [sort, setSort] = useState<SortOption>("newest");
   const [search, setSearch] = useState("");
+  const router = useRouter();
 
-  const filtered = projects
-    .filter((p) => p.title.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      switch (sort) {
-        case "oldest":  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case "az":      return a.title.localeCompare(b.title, "pl");
-        case "za":      return b.title.localeCompare(a.title, "pl");
-        case "renders": return b.renderCount - a.renderCount;
-        default:        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
+  function sortProjects(list: Project[]) {
+    return [...list]
+      .filter((p) => p.title.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => {
+        switch (sort) {
+          case "oldest":  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case "az":      return a.title.localeCompare(b.title, "pl");
+          case "za":      return b.title.localeCompare(a.title, "pl");
+          case "renders": return b.renderCount - a.renderCount;
+          default:        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+      });
+  }
+
+  async function handleRestore(id: string) {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: false }),
     });
+    if (res.ok) { toast.success("Projekt przywrócony"); router.refresh(); }
+    else toast.error("Błąd przywracania projektu");
+  }
+
+  async function handleDelete(id: string, title: string) {
+    if (!confirm(`Trwale usunąć projekt „${title}"? Tej operacji nie można cofnąć.`)) return;
+    const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    if (res.ok) { toast.success("Projekt usunięty"); router.refresh(); }
+    else toast.error("Błąd usuwania projektu");
+  }
+
+  const filtered = sortProjects(tab === "active" ? projects : archivedProjects);
+  const currentList = tab === "active" ? projects : archivedProjects;
 
   return (
     <div>
@@ -55,10 +83,39 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
         <NewProjectDialog />
       </div>
 
+      {/* Tabs */}
+      <div className="flex items-center gap-1 mb-4 border-b border-border">
+        <button
+          onClick={() => setTab("active")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === "active"
+              ? "border-foreground text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Aktywne
+          <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === "active" ? "bg-foreground text-background" : "bg-muted text-muted-foreground"}`}>
+            {projects.length}
+          </span>
+        </button>
+        <button
+          onClick={() => setTab("archived")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === "archived"
+              ? "border-foreground text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Zarchiwizowane
+          <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === "archived" ? "bg-foreground text-background" : "bg-muted text-muted-foreground"}`}>
+            {archivedProjects.length}
+          </span>
+        </button>
+      </div>
+
       {/* Toolbar: search + sort */}
-      {projects.length > 0 && (
+      {currentList.length > 0 && (
         <div className="flex items-center gap-2 mb-6">
-          {/* Search */}
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
@@ -69,16 +126,9 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
               className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-card focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             />
           </div>
-
-          {/* Sort: mobile icon-only */}
           <div className={`relative sm:hidden w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md border ${sort !== "newest" ? "border-gray-900 bg-gray-900" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-card"}`}>
             <SlidersHorizontal size={14} className={`pointer-events-none ${sort !== "newest" ? "text-white" : "text-gray-500"}`} />
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortOption)}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              aria-label="Sortowanie"
-            >
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" aria-label="Sortowanie">
               <option value="newest">Najnowsze</option>
               <option value="oldest">Najstarsze</option>
               <option value="az">A–Z</option>
@@ -86,13 +136,7 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
               <option value="renders">Najwięcej renderów</option>
             </select>
           </div>
-
-          {/* Sort: desktop full select */}
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortOption)}
-            className="hidden sm:block flex-shrink-0 text-xs border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 bg-white dark:bg-card text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
-          >
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className="hidden sm:block flex-shrink-0 text-xs border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 bg-white dark:bg-card text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300">
             <option value="newest">Najnowsze</option>
             <option value="oldest">Najstarsze</option>
             <option value="az">A–Z</option>
@@ -102,94 +146,105 @@ export default function ProjektyView({ projects }: ProjektyViewProps) {
         </div>
       )}
 
-      {/* Empty state */}
-      {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#19213D]/10 flex items-center justify-center mb-4">
-            <Briefcase size={28} className="text-[#19213D]" />
-          </div>
-          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">
-            Brak projektów
-          </h2>
-          <p className="text-sm text-gray-400 max-w-xs">
-            Kliknij „Nowy projekt" aby stworzyć pierwszy projekt i podpiąć do niego zasoby z modułów.
-          </p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-4">🔍</p>
-          <p className="text-lg">Brak projektów pasujących do &quot;{search}&quot;</p>
-        </div>
-      ) : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {/* Table header */}
-          <div className="hidden sm:grid grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            <span>Projekt</span>
-            <span>Data</span>
-            <span>Moduły</span>
-            <span className="text-right">Akcje</span>
-          </div>
-
-          {/* Rows */}
-          {filtered.map((p, i) => (
-            <div
-              key={p.id}
-              className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors ${
-                i !== filtered.length - 1 ? "border-b border-border" : ""
-              }`}
-            >
-              {/* Title + client */}
-              <div className="min-w-0">
-                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{p.title}</p>
-                {p.clientName && (
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{p.clientName}</p>
-                )}
-                {p.description && (
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{p.description}</p>
-                )}
+      {/* Active tab */}
+      {tab === "active" && (
+        <>
+          {projects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#19213D]/10 flex items-center justify-center mb-4">
+                <Briefcase size={28} className="text-[#19213D]" />
               </div>
-
-              {/* Date */}
-              <p className="hidden sm:block text-sm text-muted-foreground whitespace-nowrap">
-                {new Date(p.createdAt).toLocaleDateString("pl-PL", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </p>
-
-              {/* Module badges */}
-              <div className="hidden sm:flex items-center gap-2 flex-wrap">
-                <Link
-                  href={`/projects/${p.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md bg-[#19213D]/10 text-[#19213D] dark:bg-white/10 dark:text-white hover:bg-[#19213D]/20 dark:hover:bg-white/20 transition-colors"
-                >
-                  <ImageIcon size={11} />
-                  RenderFlow
-                  {p.renderCount > 0 && (
-                    <span className="text-[10px] opacity-60">({p.renderCount})</span>
-                  )}
-                </Link>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md bg-[#0f766e]/10 text-[#0f766e] cursor-default">
-                  <ShoppingCart size={11} />
-                  Listy
-                </span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-1">
-                <Link href={`/projects/${p.id}`}>
-                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1">
-                    <span className="hidden sm:inline text-xs">Otwórz</span>
-                    <ChevronRight size={14} />
-                  </Button>
-                </Link>
-                <ProjektyMenu project={p} />
-              </div>
+              <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">Brak projektów</h2>
+              <p className="text-sm text-gray-400 max-w-xs">Kliknij „Nowy projekt" aby stworzyć pierwszy projekt i podpiąć do niego zasoby z modułów.</p>
             </div>
-          ))}
-        </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <p className="text-4xl mb-4">🔍</p>
+              <p className="text-lg">Brak projektów pasujących do &quot;{search}&quot;</p>
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="hidden sm:grid grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <span>Projekt</span>
+                <span>Data</span>
+                <span>Moduły</span>
+                <span className="text-right">Akcje</span>
+              </div>
+              {filtered.map((p, i) => (
+                <div key={p.id} className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors ${i !== filtered.length - 1 ? "border-b border-border" : ""}`}>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{p.title}</p>
+                    {p.clientName && <p className="text-xs text-muted-foreground truncate mt-0.5">{p.clientName}</p>}
+                    {p.description && <p className="text-xs text-muted-foreground truncate mt-0.5">{p.description}</p>}
+                  </div>
+                  <p className="hidden sm:block text-sm text-muted-foreground whitespace-nowrap">
+                    {new Date(p.createdAt).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" })}
+                  </p>
+                  <div className="hidden sm:flex items-center gap-2 flex-wrap">
+                    <Link href={`/projects/${p.id}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md bg-[#19213D]/10 text-[#19213D] dark:bg-white/10 dark:text-white hover:bg-[#19213D]/20 dark:hover:bg-white/20 transition-colors">
+                      <ImageIcon size={11} />
+                      RenderFlow
+                      {p.renderCount > 0 && <span className="text-[10px] opacity-60">({p.renderCount})</span>}
+                    </Link>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md bg-[#0f766e]/10 text-[#0f766e] cursor-default">
+                      <ShoppingCart size={11} />
+                      Listy
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-end gap-1">
+                    <Link href={`/projects/${p.id}`}>
+                      <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1">
+                        <span className="hidden sm:inline text-xs">Otwórz</span>
+                        <ChevronRight size={14} />
+                      </Button>
+                    </Link>
+                    <ProjektyMenu project={p} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Archived tab */}
+      {tab === "archived" && (
+        <>
+          {archivedProjects.length === 0 ? (
+            <div className="text-center py-24 text-muted-foreground">
+              <p className="text-sm">Brak zarchiwizowanych projektów</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <p className="text-4xl mb-4">🔍</p>
+              <p className="text-lg">Brak projektów pasujących do &quot;{search}&quot;</p>
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              {filtered.map((p, i) => (
+                <div key={p.id} className={`flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors ${i !== filtered.length - 1 ? "border-b border-border" : ""}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-700 dark:text-gray-300 truncate">{p.title}</p>
+                    {p.clientName && <p className="text-xs text-muted-foreground mt-0.5">{p.clientName}</p>}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(p.createdAt).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => handleRestore(p.id)}>
+                      <ArchiveRestore size={14} />
+                      <span className="hidden sm:inline">Przywróć</span>
+                    </Button>
+                    <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(p.id, p.title)}>
+                      <Trash2 size={14} />
+                      <span className="hidden sm:inline">Usuń</span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

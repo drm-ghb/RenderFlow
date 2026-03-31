@@ -1,37 +1,150 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Home } from "lucide-react";
+import { LayoutGrid, Settings, Sun, Moon, Monitor, UserRound } from "lucide-react";
+import { useTheme, type Theme } from "@/lib/theme";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface ShareNavbarProps {
   backHref?: string;
   backLabel?: string;
+  clientLogoUrl?: string | null;
+  designerName?: string | null;
 }
 
-export default function ShareNavbar({ backHref, backLabel }: ShareNavbarProps) {
-  return (
-    <nav className="bg-card border-b">
-      <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
-        {/* Planospace logo */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/planospace-logo.svg" alt="Planospace" width={28} height={28} className="block dark:hidden" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/planospace-logo-dark.svg" alt="Planospace" width={28} height={28} className="hidden dark:block" />
-          <span className="text-xl font-bold tracking-tight">Planospace</span>
-        </div>
+const THEME_OPTIONS: { value: Theme; label: string; Icon: React.ElementType }[] = [
+  { value: "light", label: "Jasny", Icon: Sun },
+  { value: "dark", label: "Ciemny", Icon: Moon },
+  { value: "system", label: "Systemowy", Icon: Monitor },
+];
 
-        {backHref && (
-          <Link
-            href={backHref}
-            title={backLabel ?? "Strona główna projektu"}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"
-          >
-            <Home size={18} />
-            <span className="hidden sm:inline">{backLabel ?? "Powrót"}</span>
-          </Link>
-        )}
-      </div>
-    </nav>
+export default function ShareNavbar({ backHref, backLabel, clientLogoUrl, designerName }: ShareNavbarProps) {
+  const { theme, setTheme } = useTheme();
+  const [authorName, setAuthorName] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("renderflow-author") || "";
+    setAuthorName(saved);
+    setNameInput(saved);
+  }, []);
+
+  function saveSettings() {
+    const name = nameInput.trim();
+    localStorage.setItem("renderflow-author", name);
+    setAuthorName(name);
+    setSettingsOpen(false);
+  }
+
+  return (
+    <>
+      <nav className="bg-card border-b">
+        <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
+          {/* Left: back icon + logo */}
+          <div className="flex items-center gap-3 shrink-0">
+            {backHref && (
+              <Link
+                href={backHref}
+                title={backLabel ?? "Strona główna projektu"}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"
+              >
+                <LayoutGrid size={20} />
+              </Link>
+            )}
+            <div className="flex items-center gap-2.5">
+              {clientLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={clientLogoUrl} alt="Logo" className="h-8 object-contain" />
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/planospace-logo.svg" alt="Planospace" width={28} height={28} className="block dark:hidden" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/planospace-logo-dark.svg" alt="Planospace" width={28} height={28} className="hidden dark:block" />
+                </>
+              )}
+              <span className="text-xl font-bold tracking-tight">
+                {designerName ?? "Planospace"}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: dark mode toggle + settings */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Tryb jasny" : "Tryb ciemny"}
+              className={`relative flex items-center w-14 h-7 rounded-full transition-colors duration-300 flex-shrink-0 ${
+                theme === "dark" ? "bg-slate-700" : "bg-gray-200"
+              }`}
+            >
+              <Sun size={12} className={`absolute left-1.5 transition-opacity duration-200 ${theme === "dark" ? "opacity-30 text-gray-400" : "opacity-100 text-yellow-500"}`} />
+              <Moon size={12} className={`absolute right-1.5 transition-opacity duration-200 ${theme === "dark" ? "opacity-100 text-blue-300" : "opacity-30 text-gray-400"}`} />
+              <span className={`absolute w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${
+                theme === "dark" ? "translate-x-7" : "translate-x-1"
+              }`} />
+            </button>
+            <button
+              onClick={() => { setNameInput(authorName); setSettingsOpen(true); }}
+              title="Ustawienia"
+              className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            >
+              <Settings size={15} />
+              <span className="hidden sm:inline">{authorName || "Ustawienia"}</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Settings dialog */}
+      {settingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSettingsOpen(false)}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold">Ustawienia</h2>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <UserRound size={16} className="text-gray-400" />
+                <span className="font-medium text-sm">Twoja tożsamość</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Imię widoczne przy Twoich komentarzach.</p>
+              <Input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="Twoje imię"
+                onKeyDown={(e) => e.key === "Enter" && saveSettings()}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-3">
+              <span className="font-medium text-sm">Motyw interfejsu</span>
+              <div className="flex gap-2">
+                {THEME_OPTIONS.map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setTheme(value)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors ${
+                      theme === value ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Icon size={14} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(false)}>Anuluj</Button>
+              <Button size="sm" onClick={saveSettings}>Zapisz</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

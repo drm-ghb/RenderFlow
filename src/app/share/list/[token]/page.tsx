@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Home, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import ShareNavbar from "@/components/share/ShareNavbar";
 
 function parsePrice(price: string | null): number | null {
@@ -26,7 +26,9 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
           id: true,
           title: true,
           shareToken: true,
+          archived: true,
           renders: { select: { id: true }, take: 1 },
+          user: { select: { clientLogoUrl: true, name: true } },
         },
       },
       sections: {
@@ -36,7 +38,7 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
     },
   });
 
-  if (!list) notFound();
+  if (!list || list.archived || list.project?.archived) notFound();
 
   const allProducts = list.sections.flatMap((s) => s.products);
   const grandTotal = allProducts.reduce((sum, p) => {
@@ -52,7 +54,12 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30">
-      <ShareNavbar backHref={homeHref} backLabel={list.project?.title} />
+      <ShareNavbar
+        backHref={homeHref}
+        backLabel={list.project?.title}
+        clientLogoUrl={list.project?.user?.clientLogoUrl}
+        designerName={list.project?.user?.name}
+      />
 
       <main className="flex-1 container mx-auto px-3 sm:px-6 max-w-6xl py-4 sm:py-8">
         {/* Header */}
@@ -62,9 +69,8 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
               <>
                 <Link
                   href={`/share/${list.project.shareToken}/home`}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
                 >
-                  <Home size={14} />
                   {list.project.title}
                 </Link>
                 <span className="text-muted-foreground">/</span>

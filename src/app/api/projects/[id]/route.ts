@@ -59,6 +59,17 @@ export async function PATCH(
     modulesUpdate = { modules: { set: existing.modules.filter((m) => m !== body.removeModule) } };
   }
 
+  // Cascade archive/restore
+  if (typeof body.archived === "boolean" && body.archived !== existing.archived) {
+    await prisma.$transaction([
+      prisma.project.update({ where: { id }, data: { archived: body.archived } }),
+      prisma.room.updateMany({ where: { projectId: id }, data: { archived: body.archived } }),
+      prisma.render.updateMany({ where: { projectId: id }, data: { archived: body.archived } }),
+      prisma.shoppingList.updateMany({ where: { projectId: id }, data: { archived: body.archived } }),
+    ]);
+    return NextResponse.json({ success: true });
+  }
+
   const updated = await prisma.project.update({
     where: { id },
     data: {
@@ -66,7 +77,6 @@ export async function PATCH(
       ...(body.clientName !== undefined && { clientName: body.clientName || null }),
       ...(body.clientEmail !== undefined && { clientEmail: body.clientEmail || null }),
       ...(body.description !== undefined && { description: body.description || null }),
-      ...(body.archived !== undefined && { archived: body.archived }),
       ...(body.sharePassword !== undefined && { sharePassword: body.sharePassword || null }),
       ...(body.shareExpiresAt !== undefined && { shareExpiresAt: body.shareExpiresAt ? new Date(body.shareExpiresAt) : null }),
       ...modulesUpdate,

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Archive } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -39,6 +39,20 @@ export default function ProjektyMenu({ project }: ProjektyMenuProps) {
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
+  async function handleArchive() {
+    const res = await fetch(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: true }),
+    });
+    if (res.ok) {
+      toast.success("Projekt zarchiwizowany");
+      router.refresh();
+    } else {
+      toast.error("Błąd archiwizacji projektu");
+    }
+  }
+
   async function handleDelete() {
     setDeleting(true);
     try {
@@ -68,6 +82,10 @@ export default function ProjektyMenu({ project }: ProjektyMenuProps) {
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
             <Pencil size={14} />
             Edytuj
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleArchive}>
+            <Archive size={14} />
+            Archiwizuj
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>

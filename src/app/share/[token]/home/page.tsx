@@ -13,16 +13,20 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
     include: {
       renders: { where: { archived: false }, select: { id: true }, take: 1 },
       shoppingLists: { select: { id: true, name: true, shareToken: true } },
+      user: { select: { clientLogoUrl: true, name: true } },
     },
   });
 
-  if (!project) notFound();
+  if (!project || project.archived) notFound();
 
   const hasRenders = project.renders.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30">
-      <ShareNavbar />
+      <ShareNavbar
+        clientLogoUrl={project.user.clientLogoUrl}
+        designerName={project.user.name}
+      />
 
       <main className="flex-1 container mx-auto px-3 sm:px-6 max-w-6xl py-4 sm:py-8">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">
@@ -56,8 +60,8 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
                 <ShoppingCart size={32} className="text-white" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-foreground leading-tight truncate w-full">{list.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Lista zakupowa</p>
+                <p className="text-sm font-medium text-foreground leading-tight">Listy</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight truncate w-full">{list.name}</p>
               </div>
             </Link>
           ))}

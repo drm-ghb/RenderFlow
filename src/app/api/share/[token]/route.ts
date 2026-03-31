@@ -57,6 +57,10 @@ export async function GET(
     return NextResponse.json({ error: "Nie znaleziono" }, { status: 404 });
   }
 
+  if (project.archived) {
+    return NextResponse.json({ error: "Projekt zarchiwizowany", expired: true }, { status: 410 });
+  }
+
   // Check link expiry
   if (project.shareExpiresAt && new Date() > new Date(project.shareExpiresAt)) {
     return NextResponse.json({ error: "Link wygasł", expired: true }, { status: 410 });

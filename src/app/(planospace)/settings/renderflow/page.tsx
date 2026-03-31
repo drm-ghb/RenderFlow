@@ -1,17 +1,15 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { SettingsPage } from "@/components/dashboard/SettingsPage";
+import { SettingsRenderFlow } from "@/components/settings/SettingsRenderFlow";
 
-export default async function SettingsRoute() {
+export default async function SettingsRenderFlowPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
-      name: true,
-      email: true,
       allowDirectStatusChange: true,
       allowClientComments: true,
       allowClientAcceptance: true,
@@ -26,19 +24,13 @@ export default async function SettingsRoute() {
       notifyClientOnStatusChange: true,
       notifyClientOnReply: true,
       allowClientVersionRestore: true,
-      showProjectTitle: true,
-      clientLogoUrl: true,
-      clientWelcomeMessage: true,
-      accentColor: true,
     },
   });
 
   if (!user) redirect("/login");
 
   return (
-    <SettingsPage
-      initialName={user.name ?? ""}
-      initialEmail={user.email}
+    <SettingsRenderFlow
       initialAllowDirectStatusChange={user.allowDirectStatusChange}
       initialAllowClientComments={user.allowClientComments}
       initialAllowClientAcceptance={user.allowClientAcceptance}
@@ -53,10 +45,6 @@ export default async function SettingsRoute() {
       initialNotifyClientOnStatusChange={user.notifyClientOnStatusChange}
       initialNotifyClientOnReply={user.notifyClientOnReply}
       initialAllowClientVersionRestore={user.allowClientVersionRestore}
-      initialShowProjectTitle={user.showProjectTitle}
-      initialClientLogoUrl={user.clientLogoUrl}
-      initialClientWelcomeMessage={user.clientWelcomeMessage}
-      initialAccentColor={user.accentColor}
     />
   );
 }

@@ -63,7 +63,7 @@ export default async function DashboardLayout({
           <div className="hidden md:flex items-center gap-4 shrink-0">
             <span className="text-sm text-gray-500 dark:text-gray-400">{displayName}</span>
             <Link
-              href="/settings"
+              href="/settings/renderflow"
               title="Ustawienia"
               className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-muted"
             >

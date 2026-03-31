@@ -4,16 +4,22 @@ import ProjektyView from "@/components/projekty/ProjektyView";
 
 export default async function ProjektyPage() {
   const session = await auth();
+  const userId = session!.user!.id!;
 
-  const projects = await prisma.project.findMany({
-    where: { userId: session!.user!.id!, archived: false },
-    include: {
-      _count: { select: { renders: true, rooms: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [projects, archivedProjects] = await Promise.all([
+    prisma.project.findMany({
+      where: { userId, archived: false },
+      include: { _count: { select: { renders: true, rooms: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.project.findMany({
+      where: { userId, archived: true },
+      include: { _count: { select: { renders: true, rooms: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
-  const serialized = projects.map((p) => ({
+  const serialize = (p: typeof projects[0]) => ({
     id: p.id,
     title: p.title,
     clientName: p.clientName,
@@ -22,7 +28,12 @@ export default async function ProjektyPage() {
     renderCount: p._count.renders,
     roomCount: p._count.rooms,
     createdAt: p.createdAt.toISOString(),
-  }));
+  });
 
-  return <ProjektyView projects={serialized} />;
+  return (
+    <ProjektyView
+      projects={projects.map(serialize)}
+      archivedProjects={archivedProjects.map(serialize)}
+    />
+  );
 }

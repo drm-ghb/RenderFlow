@@ -2,8 +2,9 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { SettingsLink } from "@/components/dashboard/SettingsLink";
 import { prisma } from "@/lib/prisma";
 
 export default async function PlanospaceLayout({
@@ -25,11 +26,20 @@ export default async function PlanospaceLayout({
     <div className="min-h-screen flex flex-col bg-muted/30">
       <nav className="bg-card border-b">
         <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
-          {/* Logo */}
+          {/* Left: home + logo */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Link
+              href="/home"
+              title="Strona główna"
+              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-muted"
+            >
+              <LayoutGrid size={20} />
+            </Link>
           <div className="flex items-center gap-2.5 shrink-0">
             <Image src="/planospace-logo.svg" alt="Planospace" width={28} height={28} className="block dark:hidden" />
             <Image src="/planospace-logo-dark.svg" alt="Planospace" width={28} height={28} className="hidden dark:block" />
             <span className="text-xl font-bold tracking-tight">Planospace</span>
+          </div>
           </div>
 
           {/* Right: user + settings + logout */}
@@ -39,13 +49,7 @@ export default async function PlanospaceLayout({
                 {displayName}
               </span>
             )}
-            <Link
-              href="/settings"
-              title="Ustawienia"
-              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-muted"
-            >
-              <Settings size={18} />
-            </Link>
+            <SettingsLink />
             <SignOutButton />
           </div>
         </div>

@@ -37,7 +37,7 @@ export default function MobileMenu({ userName }: { userName: string | null }) {
             </div>
           )}
           <Link
-            href="/settings"
+            href="/settings/renderflow"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-muted transition-colors"
           >
