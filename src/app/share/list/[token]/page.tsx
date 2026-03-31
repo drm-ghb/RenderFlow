@@ -54,7 +54,7 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
     <div className="min-h-screen flex flex-col bg-muted/30">
       <ShareNavbar backHref={homeHref} backLabel={list.project?.title} />
 
-      <main className="flex-1 px-4 sm:px-8 py-8">
+      <main className="flex-1 container mx-auto px-3 sm:px-6 max-w-6xl py-4 sm:py-8">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-2 min-w-0">

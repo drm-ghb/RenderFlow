@@ -10,7 +10,7 @@ interface ShareNavbarProps {
 export default function ShareNavbar({ backHref, backLabel }: ShareNavbarProps) {
   return (
     <nav className="bg-card border-b">
-      <div className="px-4 sm:px-8 flex items-center justify-between py-3 gap-4">
+      <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
         {/* Planospace logo — identyczny jak w layout projektanta */}
         <div className="flex items-center gap-2.5 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -24,7 +24,7 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
     <div className="min-h-screen flex flex-col bg-muted/30">
       <ShareNavbar />
 
-      <main className="flex-1 px-4 sm:px-8 py-8">
+      <main className="flex-1 container mx-auto px-3 sm:px-6 max-w-6xl py-4 sm:py-8">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">
           {project.title}
         </h2>
