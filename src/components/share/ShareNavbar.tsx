@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Home } from "lucide-react";
 
 interface ShareNavbarProps {
   backHref?: string;
@@ -10,25 +9,25 @@ interface ShareNavbarProps {
 
 export default function ShareNavbar({ backHref, backLabel }: ShareNavbarProps) {
   return (
-    <nav className="bg-card border-b sticky top-0 z-10">
-      <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+    <nav className="bg-card border-b">
+      <div className="px-4 sm:px-8 flex items-center justify-between py-3 gap-4">
+        {/* Planospace logo — identyczny jak w layout projektanta */}
+        <div className="flex items-center gap-2.5 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="RenderFlow" width={28} height={28} className="block dark:hidden" />
+          <img src="/planospace-logo.svg" alt="Planospace" width={28} height={28} className="block dark:hidden" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-dark.svg" alt="RenderFlow" width={28} height={28} className="hidden dark:block" />
-          <span className="text-xl font-bold">Render<span className="text-[#19213D] dark:text-white">Flow</span></span>
-        </Link>
+          <img src="/planospace-logo-dark.svg" alt="Planospace" width={28} height={28} className="hidden dark:block" />
+          <span className="text-xl font-bold tracking-tight">Planospace</span>
+        </div>
 
-        {/* Back to project home */}
-        <Link
-          href={backHref ?? "/"}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Home size={15} />
-          <span className="hidden sm:inline">{backLabel ?? "Strona główna"}</span>
-        </Link>
+        {backHref && (
+          <Link
+            href={backHref}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {backLabel ?? "Powrót"}
+          </Link>
+        )}
       </div>
     </nav>
   );
