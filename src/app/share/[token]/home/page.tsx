@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ImageIcon, ShoppingBag } from "lucide-react";
 import ShareNavbar from "@/components/share/ShareNavbar";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default async function ProjectHomePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -34,7 +35,7 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
       label: "RenderFlow",
       description: "Wizualizacje i rendery projektu",
       href: `/share/${token}`,
-      icon: <ImageIcon size={28} className="text-[#19213D]" />,
+      icon: <ImageIcon size={22} className="text-[#19213D]" />,
     });
   }
 
@@ -43,7 +44,7 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
       label: list.name,
       description: "Lista zakupowa",
       href: `/share/list/${list.shareToken}`,
-      icon: <ShoppingBag size={28} className="text-[#19213D]" />,
+      icon: <ShoppingBag size={22} className="text-[#19213D]" />,
     });
   }
 
@@ -51,40 +52,45 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
     <div className="min-h-screen bg-background flex flex-col">
       <ShareNavbar />
 
-      <div className="container mx-auto px-3 sm:px-6 max-w-6xl py-8 flex-1">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">{project.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">Widok klienta</p>
+      <main className="flex-1 container mx-auto px-3 sm:px-6 py-4 sm:py-8 max-w-6xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">{project.title}</h1>
+            <p className="text-gray-500 mt-1">
+              {modules.length === 0
+                ? "Brak dostępnych modułów"
+                : `${modules.length} moduł${modules.length === 1 ? "" : modules.length < 5 ? "y" : "ów"}`}
+            </p>
+          </div>
         </div>
 
-      <div className="max-w-2xl">
-        <p className="text-sm text-muted-foreground mb-6">
-          Wybierz moduł, który chcesz przeglądać:
-        </p>
-
         {modules.length === 0 && (
-          <p className="text-center text-muted-foreground py-16">Brak dostępnych modułów.</p>
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <p className="text-muted-foreground">Brak dostępnych modułów.</p>
+          </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((mod) => (
-            <Link
-              key={mod.href}
-              href={mod.href}
-              className="flex items-center gap-4 p-5 bg-card border border-border rounded-2xl hover:border-[#19213D]/30 hover:bg-[#19213D]/5 transition-colors group"
-            >
-              <div className="w-14 h-14 rounded-xl bg-[#19213D]/10 flex items-center justify-center shrink-0 group-hover:bg-[#19213D]/15 transition-colors">
-                {mod.icon}
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-foreground truncate">{mod.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{mod.description}</p>
-              </div>
+            <Link key={mod.href} href={mod.href} className="block">
+              <Card className="hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer h-full">
+                <CardHeader>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#19213D]/10 flex items-center justify-center shrink-0">
+                      {mod.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base leading-tight">{mod.label}</CardTitle>
+                      <CardDescription className="mt-0.5">{mod.description}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
             </Link>
           ))}
         </div>
-      </div>
-      </div>
+      </main>
     </div>
   );
 }
