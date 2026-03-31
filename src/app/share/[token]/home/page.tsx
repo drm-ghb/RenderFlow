@@ -12,77 +12,67 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
     where: { shareToken: token },
     include: {
       renders: { where: { archived: false }, select: { id: true }, take: 1 },
-      shoppingLists: {
-        select: { id: true, name: true, shareToken: true },
-      },
+      shoppingLists: { select: { id: true, name: true, shareToken: true } },
     },
   });
 
   if (!project) notFound();
 
   const hasRenders = project.renders.length > 0;
-  const lists = project.shoppingLists;
-
-  const modules: {
-    label: string;
-    description: string;
-    href: string;
-    icon: React.ReactNode;
-  }[] = [];
-
-  if (hasRenders) {
-    modules.push({
-      label: "RenderFlow",
-      description: "Wizualizacje i rendery projektu",
-      href: `/share/${token}`,
-      icon: <ImageIcon size={22} className="text-[#19213D]" />,
-    });
-  }
-
-  for (const list of lists) {
-    modules.push({
-      label: list.name,
-      description: "Lista zakupowa",
-      href: `/share/list/${list.shareToken}`,
-      icon: <ShoppingBag size={22} className="text-[#19213D]" />,
-    });
-  }
+  const moduleCount = (hasRenders ? 1 : 0) + project.shoppingLists.length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ShareNavbar />
 
       <main className="flex-1 container mx-auto px-3 sm:px-6 py-4 sm:py-8 max-w-6xl">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           <div>
             <h1 className="text-2xl font-bold">{project.title}</h1>
             <p className="text-gray-500 mt-1">
-              {modules.length === 0
+              {moduleCount === 0
                 ? "Brak dostępnych modułów"
-                : `${modules.length} moduł${modules.length === 1 ? "" : modules.length < 5 ? "y" : "ów"}`}
+                : `${moduleCount} moduł${moduleCount === 1 ? "" : moduleCount < 5 ? "y" : "ów"}`}
             </p>
           </div>
         </div>
 
-        {modules.length === 0 && (
+        {moduleCount === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <p className="text-muted-foreground">Brak dostępnych modułów.</p>
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {modules.map((mod) => (
-            <Link key={mod.href} href={mod.href} className="block">
+          {hasRenders && (
+            <Link href={`/share/${token}`} className="block">
               <Card className="hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer h-full">
                 <CardHeader>
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-[#19213D]/10 flex items-center justify-center shrink-0">
-                      {mod.icon}
+                      <ImageIcon size={22} className="text-[#19213D]" />
                     </div>
                     <div className="min-w-0">
-                      <CardTitle className="text-base leading-tight">{mod.label}</CardTitle>
-                      <CardDescription className="mt-0.5">{mod.description}</CardDescription>
+                      <CardTitle className="text-base leading-tight">RenderFlow</CardTitle>
+                      <CardDescription className="mt-0.5">Wizualizacje i rendery projektu</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            </Link>
+          )}
+
+          {project.shoppingLists.map((list) => (
+            <Link key={list.id} href={`/share/list/${list.shareToken}`} className="block">
+              <Card className="hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer h-full">
+                <CardHeader>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#19213D]/10 flex items-center justify-center shrink-0">
+                      <ShoppingBag size={22} className="text-[#19213D]" />
+                    </div>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base leading-tight">{list.name}</CardTitle>
+                      <CardDescription className="mt-0.5">Lista zakupowa</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
