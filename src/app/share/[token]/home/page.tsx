@@ -20,6 +20,8 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
   if (!project || project.archived) notFound();
 
   const hasRenders = project.renders.length > 0;
+  const showRenderFlow = !project.hiddenModules.includes("renderflow");
+  const showListy = !project.hiddenModules.includes("listy");
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30">
@@ -35,7 +37,7 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
 
-          {hasRenders && (
+          {hasRenders && showRenderFlow && (
             <Link
               href={`/share/${token}`}
               className="group flex flex-col items-center gap-3 p-4 rounded-xl bg-card border border-border hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer"
@@ -50,7 +52,7 @@ export default async function ProjectHomePage({ params }: { params: Promise<{ to
             </Link>
           )}
 
-          {project.shoppingLists.map((list) => (
+          {showListy && project.shoppingLists.map((list) => (
             <Link
               key={list.id}
               href={`/share/list/${list.shareToken}`}

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 
 function getSettingsHref(pathname: string): string {
-  if (pathname.startsWith("/dashboard")) return "/settings/renderflow";
+  if (pathname.startsWith("/renderflow")) return "/settings/renderflow";
   if (pathname.startsWith("/listy")) return "/settings/listy";
   if (pathname.startsWith("/projekty")) return "/settings/ogolne";
   return "/settings/ogolne";

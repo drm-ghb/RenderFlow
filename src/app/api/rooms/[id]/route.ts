@@ -28,6 +28,7 @@ export async function PATCH(
       ...(body.type !== undefined && { type: body.type }),
       ...(body.icon !== undefined && { icon: body.icon }),
       ...(body.archived !== undefined && { archived: body.archived }),
+      ...(body.pinned !== undefined && { pinned: body.pinned }),
     },
   });
 

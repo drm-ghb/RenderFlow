@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Archive, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Archive, Trash2, Pin, PinOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,12 +19,27 @@ interface RoomMenuProps {
     name: string;
     type: string;
     icon?: string | null;
+    pinned?: boolean;
   };
 }
 
 export default function RoomMenu({ room }: RoomMenuProps) {
   const [editOpen, setEditOpen] = useState(false);
   const router = useRouter();
+
+  async function handlePin() {
+    const res = await fetch(`/api/rooms/${room.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned: !room.pinned }),
+    });
+    if (res.ok) {
+      toast.success(room.pinned ? "Odpięto pomieszczenie" : "Pomieszczenie przypięte");
+      router.refresh();
+    } else {
+      toast.error("Błąd operacji");
+    }
+  }
 
   async function handleArchive() {
     const res = await fetch(`/api/rooms/${room.id}`, {
@@ -61,6 +76,11 @@ export default function RoomMenu({ room }: RoomMenuProps) {
           <MoreHorizontal size={16} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handlePin}>
+            {room.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+            {room.pinned ? "Odepnij" : "Przypnij"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
             <Pencil size={14} />
             Edytuj

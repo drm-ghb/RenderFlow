@@ -28,6 +28,8 @@ export default async function DashboardPage() {
       renderCount: p._count.renders,
       createdAt: p.createdAt.toISOString(),
       shareToken: p.shareToken,
+      pinned: p.pinned,
+      hiddenModules: p.hiddenModules,
     };
   }
 

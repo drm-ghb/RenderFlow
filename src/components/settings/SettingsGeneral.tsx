@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { User, Mail, Lock, Info, Sun, Moon, Monitor, Palette, Image as ImageIcon } from "lucide-react";
+import { User, Mail, Lock, Info, Sun, Moon, Monitor, Palette, Image as ImageIcon, Layers, ShoppingCart } from "lucide-react";
+import Image from "next/image";
 import { useTheme, type Theme } from "@/lib/theme";
 import { UploadButton } from "@uploadthing/react";
 import type { OurFileRouter } from "@/lib/uploadthing";
-import { patchUser, SettingRow, SectionHeader } from "./SettingsShared";
+import { patchUser, SettingRow, SectionHeader, ToggleSwitch } from "./SettingsShared";
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: React.ElementType }[] = [
   { value: "light", label: "Jasny", icon: Sun },
@@ -22,6 +23,7 @@ interface Props {
   initialName: string;
   initialEmail: string;
   initialShowProjectTitle: boolean;
+  initialGlobalHiddenModules: string[];
   initialClientLogoUrl: string | null;
   initialClientWelcomeMessage: string | null;
   initialAccentColor: string | null;
@@ -31,6 +33,7 @@ export function SettingsGeneral({
   initialName,
   initialEmail,
   initialShowProjectTitle,
+  initialGlobalHiddenModules,
   initialClientLogoUrl,
   initialClientWelcomeMessage,
   initialAccentColor,
@@ -48,6 +51,7 @@ export function SettingsGeneral({
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [showProjectTitle, setShowProjectTitle] = useState(initialShowProjectTitle);
+  const [globalHiddenModules, setGlobalHiddenModules] = useState<string[]>(initialGlobalHiddenModules);
   const [clientLogoUrl, setClientLogoUrl] = useState<string | null>(initialClientLogoUrl);
   const [welcomeMsg, setWelcomeMsg] = useState(initialClientWelcomeMessage ?? "");
   const [welcomeLoading, setWelcomeLoading] = useState(false);
@@ -96,6 +100,15 @@ export function SettingsGeneral({
     const next = !showProjectTitle;
     const res = await patchUser({ showProjectTitle: next });
     if (res.ok) { setShowProjectTitle(next); toast.success("Zapisano"); }
+    else toast.error("Błąd podczas zapisywania");
+  }
+
+  async function toggleGlobalModule(slug: string) {
+    const next = globalHiddenModules.includes(slug)
+      ? globalHiddenModules.filter((m) => m !== slug)
+      : [...globalHiddenModules, slug];
+    const res = await patchUser({ globalHiddenModules: next });
+    if (res.ok) { setGlobalHiddenModules(next); toast.success("Zapisano"); }
     else toast.error("Błąd podczas zapisywania");
   }
 
@@ -265,6 +278,49 @@ export function SettingsGeneral({
               {welcomeLoading ? "Zapisywanie..." : "Zapisz"}
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* ── Widoczność modułów ── */}
+      <section className="space-y-4">
+        <SectionHeader title="Widoczność modułów" />
+
+        <div className="bg-card border border-border rounded-2xl p-6 space-y-1">
+          <p className="text-xs text-gray-400 mb-4">Wybierz moduły widoczne na Twojej stronie głównej (/home). Wyłączenie modułu nie usuwa jego zasobów.</p>
+          {[
+            {
+              slug: "renderflow",
+              label: "RenderFlow",
+              description: "Wizualizacje projektu — moduł z renderami do akceptacji.",
+              icon: (
+                <div className="w-9 h-9 rounded-xl bg-[#19213D] flex items-center justify-center flex-shrink-0">
+                  <Image src="/logo-dark.svg" alt="RenderFlow" width={22} height={22} />
+                </div>
+              ),
+            },
+            {
+              slug: "listy",
+              label: "Listy zakupowe",
+              description: "Listy produktów — moduł z listami do przeglądu.",
+              icon: (
+                <div className="w-9 h-9 rounded-xl bg-[#0f766e] flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart size={18} className="text-white" />
+                </div>
+              ),
+            },
+          ].map(({ slug, label, description, icon }) => {
+            const visible = !globalHiddenModules.includes(slug);
+            return (
+              <div key={slug} className="flex items-center gap-4 py-3 border-b border-border last:border-0">
+                {icon}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+                </div>
+                <ToggleSwitch checked={visible} onToggle={() => toggleGlobalModule(slug)} />
+              </div>
+            );
+          })}
         </div>
       </section>
 

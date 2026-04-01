@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Archive, Trash2, Pencil } from "lucide-react";
+import { MoreHorizontal, Archive, Trash2, Pencil, Pin, PinOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -23,7 +23,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 interface RenderMenuProps {
-  render: { id: string; name: string };
+  render: { id: string; name: string; pinned?: boolean };
 }
 
 export default function RenderMenu({ render }: RenderMenuProps) {
@@ -31,6 +31,20 @@ export default function RenderMenu({ render }: RenderMenuProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
+
+  async function handlePin() {
+    const res = await fetch(`/api/renders/${render.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned: !render.pinned }),
+    });
+    if (res.ok) {
+      toast.success(render.pinned ? "Odpięto render" : "Render przypięty");
+      router.refresh();
+    } else {
+      toast.error("Błąd operacji");
+    }
+  }
 
   async function handleArchive() {
     const res = await fetch(`/api/renders/${render.id}`, {
@@ -85,6 +99,13 @@ export default function RenderMenu({ render }: RenderMenuProps) {
           <MoreHorizontal size={16} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={(e) => { e.preventDefault(); handlePin(); }}
+          >
+            {render.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+            {render.pinned ? "Odepnij" : "Przypnij"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={(e) => {
               e.preventDefault();

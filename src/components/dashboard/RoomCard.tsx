@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Pin } from "lucide-react";
 import { getRoomIcon } from "@/lib/roomIcons";
 import RoomMenu from "./RoomMenu";
 
@@ -10,6 +11,7 @@ interface RoomCardProps {
     name: string;
     type: string;
     icon?: string | null;
+    pinned: boolean;
     _count: { renders: number };
   };
   projectId: string;
@@ -24,8 +26,15 @@ export default function RoomCard({ room, projectId }: RoomCardProps) {
       href={`/projects/${projectId}/rooms/${room.id}`}
       className="group relative bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all"
     >
+      {/* Pin indicator */}
+      {room.pinned && (
+        <div className="absolute top-3 left-3">
+          <Pin size={13} className="text-red-500 fill-red-500" />
+        </div>
+      )}
+
       {/* Icon */}
-      <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-200 transition-colors">
+      <div className={`w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-200 transition-colors ${room.pinned ? "mt-2" : ""}`}>
         <Icon size={28} className="text-[#19213D]" />
       </div>
 
@@ -43,7 +52,7 @@ export default function RoomCard({ room, projectId }: RoomCardProps) {
         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={(e) => e.preventDefault()}
       >
-        <RoomMenu room={{ id: room.id, name: room.name, type: room.type, icon: room.icon }} />
+        <RoomMenu room={{ id: room.id, name: room.name, type: room.type, icon: room.icon, pinned: room.pinned }} />
       </div>
     </Link>
   );

@@ -3,16 +3,21 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ListDetail from "@/components/listy/ListDetail";
 
-export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ListPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ product?: string }> }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const { id } = await params;
+  const { slug } = await params;
+  const { product: initialOpenProductId } = await searchParams;
 
+  // Look up by slug first, fall back to id for backward compatibility
   const list = await prisma.shoppingList.findFirst({
-    where: { id, userId: session.user.id },
+    where: {
+      userId: session.user.id,
+      OR: [{ slug }, { id: slug }],
+    },
     include: {
-      project: { select: { id: true, title: true } },
+      project: { select: { id: true, title: true, hiddenModules: true } },
       sections: {
         orderBy: { order: "asc" },
         include: { products: { orderBy: { order: "asc" }, include: { _count: { select: { comments: true } } } } },
@@ -25,11 +30,12 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
   return (
     <ListDetail
       designerName={(session.user as { name?: string }).name ?? "Projektant"}
+      initialOpenProductId={initialOpenProductId}
       list={{
         id: list.id,
         name: list.name,
         shareToken: list.shareToken,
-        project: list.project,
+        project: list.project ? { id: list.project.id, title: list.project.title, hiddenModules: list.project.hiddenModules } : null,
         sections: list.sections.map((s) => ({
           id: s.id,
           name: s.name,

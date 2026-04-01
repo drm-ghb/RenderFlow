@@ -1,8 +1,10 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Grid2x2, Settings, Briefcase } from "lucide-react";
+import { Settings, Briefcase } from "lucide-react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import NotificationBell from "@/components/dashboard/NotificationBell";
+import { HomeLinkIcon } from "@/components/dashboard/HomeLinkIcon";
 import { prisma } from "@/lib/prisma";
 
 export default async function ProjektyLayout({
@@ -23,16 +25,10 @@ export default async function ProjektyLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="bg-card border-b">
-        <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
+        <div className="px-3 sm:px-6 flex items-center justify-between py-3 gap-4">
 
           {/* Home (Planospace launcher) */}
-          <Link
-            href="/home"
-            title="Planospace"
-            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-muted shrink-0"
-          >
-            <Grid2x2 size={18} />
-          </Link>
+          <HomeLinkIcon />
 
           {/* Logo */}
           <Link href="/projekty" className="flex items-center gap-2 shrink-0">
@@ -48,6 +44,7 @@ export default async function ProjektyLayout({
           {/* Right actions */}
           <div className="flex items-center gap-4 shrink-0">
             <span className="hidden md:block text-sm text-gray-500 dark:text-gray-400">{displayName}</span>
+            <NotificationBell userId={session.user.id!} iconOnly />
             <Link
               href="/settings"
               title="Ustawienia"
@@ -60,7 +57,7 @@ export default async function ProjektyLayout({
 
         </div>
       </nav>
-      <main className="flex-1 container mx-auto px-3 sm:px-6 py-4 sm:py-8 max-w-6xl">
+      <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8">
         {children}
       </main>
     </div>

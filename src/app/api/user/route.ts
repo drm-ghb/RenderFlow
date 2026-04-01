@@ -32,6 +32,7 @@ export async function PATCH(req: NextRequest) {
   if (body.maxPinsPerRender !== undefined) data.maxPinsPerRender = body.maxPinsPerRender === null ? null : Number(body.maxPinsPerRender);
   for (const f of boolFields) if (body[f] !== undefined) data[f] = body[f];
   for (const f of stringFields) if (body[f] !== undefined) data[f] = body[f] || null;
+  if (body.globalHiddenModules !== undefined) data.globalHiddenModules = body.globalHiddenModules;
 
   const user = await prisma.user.update({
     where: { id: session.user.id },

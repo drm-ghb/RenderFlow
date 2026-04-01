@@ -15,6 +15,7 @@ interface Render {
   commentCount: number;
   viewCount: number;
   status: RenderStatus;
+  pinned: boolean;
 }
 
 interface FolderRenderViewProps {
@@ -24,6 +25,11 @@ interface FolderRenderViewProps {
 
 export default function FolderRenderView({ projectId, renders }: FolderRenderViewProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const sorted = [...renders].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return 0;
+  });
 
   if (renders.length === 0) {
     return (
@@ -55,9 +61,14 @@ export default function FolderRenderView({ projectId, renders }: FolderRenderVie
 
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-          {renders.map((render) => (
+          {sorted.map((render) => (
             <Link key={render.id} href={`/projects/${projectId}/renders/${render.id}`}>
               <Card className="overflow-hidden hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer group relative">
+                {render.pinned && (
+                  <div className="absolute top-2 left-2 z-10">
+                    <Pin size={13} className="text-red-500 fill-red-500 drop-shadow" />
+                  </div>
+                )}
                 <div className="aspect-video bg-muted overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -89,7 +100,7 @@ export default function FolderRenderView({ projectId, renders }: FolderRenderVie
                       </span>
                     </div>
                     <div className="flex-shrink-0" onClick={(e) => e.preventDefault()}>
-                      <RenderMenu render={{ id: render.id, name: render.name }} />
+                      <RenderMenu render={{ id: render.id, name: render.name, pinned: render.pinned }} />
                     </div>
                   </div>
                 </div>
@@ -99,11 +110,11 @@ export default function FolderRenderView({ projectId, renders }: FolderRenderVie
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {renders.map((render, i) => (
+          {sorted.map((render, i) => (
             <div
               key={render.id}
               className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group ${
-                i !== renders.length - 1 ? "border-b border-border" : ""
+                i !== sorted.length - 1 ? "border-b border-border" : ""
               }`}
             >
               <Link href={`/projects/${projectId}/renders/${render.id}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -112,7 +123,10 @@ export default function FolderRenderView({ projectId, renders }: FolderRenderVie
                   <img src={render.fileUrl} alt={render.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{render.name}</p>
+                  <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                    {render.pinned && <Pin size={11} className="text-red-500 fill-red-500 flex-shrink-0" />}
+                    {render.name}
+                  </p>
                   <div className="flex items-center gap-2">
                     {render.commentCount > 0 && (
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -135,7 +149,7 @@ export default function FolderRenderView({ projectId, renders }: FolderRenderVie
                 {render.status === "ACCEPTED" ? "Zaakceptowany" : "Do weryfikacji"}
               </span>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" onClick={(e) => e.preventDefault()}>
-                <RenderMenu render={{ id: render.id, name: render.name }} />
+                <RenderMenu render={{ id: render.id, name: render.name, pinned: render.pinned }} />
               </div>
             </div>
           ))}

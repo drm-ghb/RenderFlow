@@ -32,7 +32,7 @@ export async function PATCH(
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const { name } = await req.json();
+  const body = await req.json();
 
   const folder = await prisma.folder.findUnique({
     where: { id },
@@ -43,6 +43,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Brak dostępu" }, { status: 403 });
   }
 
-  const updated = await prisma.folder.update({ where: { id }, data: { name: name.trim() } });
+  const data: Record<string, unknown> = {};
+  if (body.name !== undefined) data.name = body.name.trim();
+  if (body.pinned !== undefined) data.pinned = body.pinned;
+
+  const updated = await prisma.folder.update({ where: { id }, data });
   return NextResponse.json(updated);
 }

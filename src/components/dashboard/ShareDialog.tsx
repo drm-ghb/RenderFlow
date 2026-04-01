@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Share2, Copy, Check } from "lucide-react";
+import { Share2, Copy, Check, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,43 +9,93 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface ShareDialogProps {
   shareUrl: string;
+  hiddenModules?: string[];
+  moduleSlug?: string;
+  moduleName?: string;
 }
 
-export default function ShareDialog({ shareUrl }: ShareDialogProps) {
+export default function ShareDialog({
+  shareUrl,
+  hiddenModules = [],
+  moduleSlug = "renderflow",
+  moduleName = "RenderFlow",
+}: ShareDialogProps) {
   const [copied, setCopied] = useState(false);
+  const [warningOpen, setWarningOpen] = useState(false);
 
-  async function handleCopy() {
+  const moduleHidden = hiddenModules.includes(moduleSlug);
+
+  async function doCopy() {
     await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleCopy() {
+    if (moduleHidden) {
+      setWarningOpen(true);
+      return;
+    }
+    await doCopy();
+  }
+
   return (
-    <Dialog>
-      <DialogTrigger render={<Button variant="outline" />}>
-        <Share2 size={15} />
-        Udostępnij
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Udostępnij projekt</DialogTitle>
-          <DialogDescription>
-            Udostępnij ten link klientowi, aby mógł zobaczyć projekt i dodawać komentarze.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex gap-2">
-          <Input readOnly value={shareUrl} className="text-xs" />
-          <Button variant="outline" size="icon" onClick={handleCopy} title="Kopiuj link">
-            {copied ? <Check size={15} className="text-green-500" /> : <Copy size={15} />}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog>
+        <DialogTrigger render={<Button variant="outline" />}>
+          <Share2 size={15} />
+          Udostępnij
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Udostępnij projekt</DialogTitle>
+            <DialogDescription>
+              Udostępnij ten link klientowi, aby mógł zobaczyć projekt i dodawać komentarze.
+            </DialogDescription>
+          </DialogHeader>
+          {moduleHidden && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
+              <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+              <span>Moduł <strong>{moduleName}</strong> jest oznaczony jako <strong>NIE WIDOCZNY</strong> dla klienta. Przed udostępnieniem linku zmień to w ustawieniach projektu.</span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input readOnly value={shareUrl} className="text-xs" />
+            <Button variant="outline" size="icon" onClick={handleCopy} title="Kopiuj link">
+              {copied ? <Check size={15} className="text-green-500" /> : <Copy size={15} />}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warning confirm dialog */}
+      <Dialog open={warningOpen} onOpenChange={setWarningOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              Moduł jest ukryty dla klienta
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Moduł <strong>{moduleName}</strong> jest oznaczony jako <strong>NIE WIDOCZNY</strong> dla klienta. Przed udostępnieniem linku zmień to w ustawieniach projektu.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setWarningOpen(false)}>Zamknij</Button>
+            <Button variant="ghost" className="gap-1.5" onClick={() => { setWarningOpen(false); doCopy(); }}>
+              <Check size={14} />
+              Mimo to skopiuj
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

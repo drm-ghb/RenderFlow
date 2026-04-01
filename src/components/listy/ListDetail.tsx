@@ -61,7 +61,7 @@ interface ListDetailProps {
     id: string;
     name: string;
     shareToken: string;
-    project: { id: string; title: string } | null;
+    project: { id: string; title: string; hiddenModules: string[] } | null;
     sections: Section[];
   };
 }
@@ -151,17 +151,17 @@ function ProductRow({
   const totalPrice = unitPrice !== null ? unitPrice * qty : null;
 
   return (
-    <div className={`flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors ${!last ? "border-b border-border" : ""}`}>
+    <div className={`flex items-center gap-4 px-4 py-4 hover:bg-muted/30 transition-colors ${!last ? "border-b border-border" : ""}`}>
       {/* Index */}
-      <span className="w-5 text-right text-xs text-muted-foreground tabular-nums shrink-0">{index + 1}</span>
+      <span className="w-5 text-right text-xs text-muted-foreground tabular-nums shrink-0 self-start mt-1">{index + 1}</span>
 
       {/* Image */}
-      <div className="w-16 h-16 shrink-0 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+      <div className="w-32 h-32 shrink-0 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
         ) : (
-          <span className="text-xl text-muted-foreground/30 select-none">📦</span>
+          <span className="text-3xl text-muted-foreground/30 select-none">📦</span>
         )}
       </div>
 
@@ -296,7 +296,7 @@ function SortableSection({ id, children }: { id: string; children: (dragHandle: 
   );
 }
 
-export default function ListDetail({ list, designerName }: ListDetailProps & { designerName?: string }) {
+export default function ListDetail({ list, designerName, initialOpenProductId }: ListDetailProps & { designerName?: string; initialOpenProductId?: string }) {
   const [sections, setSections] = useState<Section[]>(list.sections);
   const [addingSection, setAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
@@ -309,7 +309,7 @@ export default function ListDetail({ list, designerName }: ListDetailProps & { d
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editingSectionName, setEditingSectionName] = useState("");
-  const [commentsPanelProductId, setCommentsPanelProductId] = useState<string | null>(null);
+  const [commentsPanelProductId, setCommentsPanelProductId] = useState<string | null>(initialOpenProductId ?? null);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
     for (const s of list.sections) {
@@ -616,7 +616,12 @@ export default function ListDetail({ list, designerName }: ListDetailProps & { d
             <span className="text-xs text-muted-foreground shrink-0">· {list.project.title}</span>
           )}
         </div>
-        <ShareDialog shareUrl={typeof window !== "undefined" ? `${window.location.origin}/share/list/${list.shareToken}` : `/share/list/${list.shareToken}`} />
+        <ShareDialog
+          shareUrl={typeof window !== "undefined" ? `${window.location.origin}/share/list/${list.shareToken}` : `/share/list/${list.shareToken}`}
+          moduleSlug="listy"
+          moduleName="Listy zakupowe"
+          hiddenModules={list.project?.hiddenModules ?? []}
+        />
       </div>
 
       {/* Toolbar */}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArchiveRestore, FolderOpen, LayoutGrid, List, Trash2 } from "lucide-react";
+import { ArchiveRestore, FolderOpen, LayoutGrid, List, Trash2, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import RoomCard from "./RoomCard";
@@ -14,6 +14,7 @@ interface Room {
   name: string;
   type: string;
   icon?: string | null;
+  pinned: boolean;
   _count: { renders: number };
 }
 
@@ -27,6 +28,11 @@ export default function ProjectView({ projectId, rooms, archivedRooms }: Project
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const router = useRouter();
+
+  const sortedRooms = [...rooms].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return 0;
+  });
 
   async function handleRestore(roomId: string) {
     const res = await fetch(`/api/rooms/${roomId}`, {
@@ -118,33 +124,36 @@ export default function ProjectView({ projectId, rooms, archivedRooms }: Project
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {rooms.map((room) => (
+            {sortedRooms.map((room) => (
               <RoomCard key={room.id} room={room} projectId={projectId} />
             ))}
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            {rooms.map((room, i) => {
+            {sortedRooms.map((room, i) => {
               const Icon = getRoomIcon(room.type, room.icon);
               const count = room._count.renders;
               return (
                 <div
                   key={room.id}
                   className={`flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors group ${
-                    i !== rooms.length - 1 ? "border-b border-gray-100" : ""
+                    i !== sortedRooms.length - 1 ? "border-b border-gray-100" : ""
                   }`}
                 >
                   <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Icon size={16} className="text-[#19213D]" />
                   </div>
-                  <a href={`/projects/${projectId}/rooms/${room.id}`} className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{room.name}</p>
-                    <p className="text-xs text-gray-400">
-                      {count} render{count === 1 ? "" : count < 5 ? "y" : "ów"}
-                    </p>
+                  <a href={`/projects/${projectId}/rooms/${room.id}`} className="flex-1 min-w-0 flex items-center gap-1.5">
+                    {room.pinned && <Pin size={11} className="text-red-500 fill-red-500 flex-shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{room.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {count} render{count === 1 ? "" : count < 5 ? "y" : "ów"}
+                      </p>
+                    </div>
                   </a>
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" onClick={(e) => e.preventDefault()}>
-                    <RoomMenu room={{ id: room.id, name: room.name, type: room.type, icon: room.icon }} />
+                    <RoomMenu room={{ id: room.id, name: room.name, type: room.type, icon: room.icon, pinned: room.pinned }} />
                   </div>
                 </div>
               );

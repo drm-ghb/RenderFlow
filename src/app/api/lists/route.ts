@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { uniqueSlug } from "@/lib/slug";
 
 export async function GET() {
   const session = await auth();
@@ -38,9 +39,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const slug = await uniqueSlug(name.trim(), (s) =>
+      prisma.shoppingList.findUnique({ where: { slug: s } }).then(Boolean)
+    );
     const list = await prisma.shoppingList.create({
       data: {
         name: name.trim(),
+        slug,
         userId: session.user.id,
         projectId: projectId ?? null,
         shareToken: crypto.randomUUID(),

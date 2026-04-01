@@ -9,7 +9,7 @@ export default async function ListyPage() {
 
   const lists = await prisma.shoppingList.findMany({
     where: { userId: session.user.id },
-    include: { project: { select: { id: true, title: true } } },
+    include: { project: { select: { id: true, title: true, hiddenModules: true, slug: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -17,11 +17,13 @@ export default async function ListyPage() {
     <ListyView
       lists={lists.map((l) => ({
         id: l.id,
+        slug: l.slug,
         name: l.name,
         shareToken: l.shareToken ?? "",
         archived: l.archived,
+        pinned: l.pinned,
         createdAt: l.createdAt.toISOString(),
-        project: l.project,
+        project: l.project ? { id: l.project.id, title: l.project.title, hiddenModules: l.project.hiddenModules } : null,
       }))}
     />
   );

@@ -29,5 +29,31 @@ export async function POST(req: NextRequest) {
 
   await pusherServer.trigger(`list-product-${productId}`, "new-comment", comment);
 
+  // Create notification for the list owner
+  const product = await prisma.listProduct.findUnique({
+    where: { id: productId },
+    include: {
+      section: {
+        include: {
+          list: { select: { id: true, slug: true, name: true, userId: true } },
+        },
+      },
+    },
+  });
+
+  if (product) {
+    const list = product.section.list;
+    const listPath = list.slug ?? list.id;
+    const notification = await prisma.notification.create({
+      data: {
+        userId: list.userId,
+        message: `${author} dodał komentarz do produktu „${product.name}" w liście „${list.name}"`,
+        link: `/listy/${listPath}?product=${productId}`,
+        type: "list_comment",
+      },
+    });
+    await pusherServer.trigger(`user-${list.userId}`, "new-notification", notification);
+  }
+
   return NextResponse.json(comment, { status: 201 });
 }

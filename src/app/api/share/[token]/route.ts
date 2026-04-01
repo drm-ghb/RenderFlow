@@ -74,6 +74,11 @@ export async function GET(
     }
   }
 
+  // Check module visibility
+  if (project.hiddenModules.includes("renderflow")) {
+    return NextResponse.json({ error: "Brak dostępu", moduleHidden: true }, { status: 403 });
+  }
+
   const { user, sharePassword, shareExpiresAt, ...rest } = project;
   const { name: designerName, ...userSettings } = user;
   return NextResponse.json({

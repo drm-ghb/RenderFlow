@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Briefcase, Image as ImageIcon, ShoppingCart, ChevronRight, SlidersHorizontal, Search, ArchiveRestore, Trash2 } from "lucide-react";
+import { Briefcase, Image as ImageIcon, ShoppingCart, ChevronRight, SlidersHorizontal, Search, ArchiveRestore, Trash2, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import NewProjectDialog from "@/components/dashboard/NewProjectDialog";
@@ -11,13 +11,16 @@ import ProjektyMenu from "@/components/projekty/ProjektyMenu";
 
 interface Project {
   id: string;
+  slug: string | null;
   title: string;
   clientName: string | null;
   clientEmail: string | null;
   description: string | null;
   renderCount: number;
   roomCount: number;
+  listCount: number;
   createdAt: string;
+  pinned: boolean;
 }
 
 interface ProjektyViewProps {
@@ -38,6 +41,7 @@ export default function ProjektyView({ projects, archivedProjects }: ProjektyVie
     return [...list]
       .filter((p) => p.title.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         switch (sort) {
           case "oldest":  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           case "az":      return a.title.localeCompare(b.title, "pl");
@@ -173,7 +177,10 @@ export default function ProjektyView({ projects, archivedProjects }: ProjektyVie
               {filtered.map((p, i) => (
                 <div key={p.id} className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_140px_200px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors ${i !== filtered.length - 1 ? "border-b border-border" : ""}`}>
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{p.title}</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1.5">
+                      {p.pinned && <Pin size={12} className="text-red-500 fill-red-500 flex-shrink-0" />}
+                      {p.title}
+                    </p>
                     {p.clientName && <p className="text-xs text-muted-foreground truncate mt-0.5">{p.clientName}</p>}
                     {p.description && <p className="text-xs text-muted-foreground truncate mt-0.5">{p.description}</p>}
                   </div>
@@ -189,10 +196,11 @@ export default function ProjektyView({ projects, archivedProjects }: ProjektyVie
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md bg-[#0f766e]/10 text-[#0f766e] cursor-default">
                       <ShoppingCart size={11} />
                       Listy
+                      {p.listCount > 0 && <span className="text-[10px] opacity-60">({p.listCount})</span>}
                     </span>
                   </div>
                   <div className="flex items-center justify-end gap-1">
-                    <Link href={`/projects/${p.id}`}>
+                    <Link href={`/projekty/${p.slug ?? p.id}`}>
                       <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1">
                         <span className="hidden sm:inline text-xs">Otwórz</span>
                         <ChevronRight size={14} />

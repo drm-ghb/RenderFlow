@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { uniqueSlug } from "@/lib/slug";
 
 export async function GET() {
   const session = await auth();
@@ -29,9 +30,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const slug = await uniqueSlug(title, (s) =>
+      prisma.project.findUnique({ where: { slug: s } }).then(Boolean)
+    );
     const project = await prisma.project.create({
       data: {
         title,
+        slug,
         clientName: clientName || null,
         clientEmail: clientEmail || null,
         description: description || null,

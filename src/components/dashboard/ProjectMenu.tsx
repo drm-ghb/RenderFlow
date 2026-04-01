@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Archive, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Archive, Trash2, Pin, PinOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,12 +20,27 @@ interface ProjectMenuProps {
     clientName?: string | null;
     clientEmail?: string | null;
     description?: string | null;
+    pinned?: boolean;
   };
 }
 
 export default function ProjectMenu({ project }: ProjectMenuProps) {
   const [editOpen, setEditOpen] = useState(false);
   const router = useRouter();
+
+  async function handlePin() {
+    const res = await fetch(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned: !project.pinned }),
+    });
+    if (res.ok) {
+      toast.success(project.pinned ? "Odpięto projekt" : "Projekt przypięty");
+      router.refresh();
+    } else {
+      toast.error("Błąd operacji");
+    }
+  }
 
   async function handleArchive() {
     const res = await fetch(`/api/projects/${project.id}`, {
@@ -63,6 +78,11 @@ export default function ProjectMenu({ project }: ProjectMenuProps) {
           <MoreHorizontal size={16} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handlePin}>
+            {project.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+            {project.pinned ? "Odepnij" : "Przypnij"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
             <Pencil size={14} />
             Edytuj

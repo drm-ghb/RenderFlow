@@ -85,6 +85,7 @@ export default function SharePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [moduleHidden, setModuleHidden] = useState(false);
 
   // Password gate
   const [passwordRequired, setPasswordRequired] = useState(false);
@@ -119,6 +120,12 @@ export default function SharePage() {
     const r = await fetch(`/api/share/${token}`, { headers });
 
     if (r.status === 410) { setExpired(true); return null; }
+    if (r.status === 403) {
+      const data = await r.json();
+      if (data.moduleHidden) { setModuleHidden(true); return null; }
+      setNotFound(true);
+      return null;
+    }
     if (r.status === 401) {
       const data = await r.json();
       if (data.passwordRequired) { setPasswordRequired(true); return null; }
@@ -325,6 +332,16 @@ export default function SharePage() {
       <div>
         <p className="text-4xl mb-4">🔍</p>
         <p className="text-gray-500">Projekt nie został znaleziony</p>
+      </div>
+    </div>
+  );
+
+  if (moduleHidden) return (
+    <div className="flex items-center justify-center min-h-screen text-center bg-background px-4">
+      <div>
+        <p className="text-4xl mb-4">🔒</p>
+        <p className="text-gray-700 dark:text-gray-200 font-semibold">Brak dostępu</p>
+        <p className="text-gray-400 text-sm mt-1">Skonsultuj się z administratorem projektu.</p>
       </div>
     </div>
   );

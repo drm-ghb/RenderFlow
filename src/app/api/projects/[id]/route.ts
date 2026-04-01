@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { uniqueSlug } from "@/lib/slug";
 
 export async function GET(
   _req: NextRequest,
@@ -74,11 +75,18 @@ export async function PATCH(
     where: { id },
     data: {
       ...(body.title !== undefined && { title: body.title }),
+      ...(body.title !== undefined && {
+        slug: await uniqueSlug(body.title, (s) =>
+          prisma.project.findFirst({ where: { slug: s, id: { not: id } } }).then(Boolean)
+        ),
+      }),
       ...(body.clientName !== undefined && { clientName: body.clientName || null }),
       ...(body.clientEmail !== undefined && { clientEmail: body.clientEmail || null }),
       ...(body.description !== undefined && { description: body.description || null }),
       ...(body.sharePassword !== undefined && { sharePassword: body.sharePassword || null }),
       ...(body.shareExpiresAt !== undefined && { shareExpiresAt: body.shareExpiresAt ? new Date(body.shareExpiresAt) : null }),
+      ...(body.pinned !== undefined && { pinned: body.pinned }),
+      ...(body.hiddenModules !== undefined && { hiddenModules: body.hiddenModules }),
       ...modulesUpdate,
     },
   });

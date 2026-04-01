@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { uniqueSlug } from "@/lib/slug";
 
 async function getOwnedList(id: string, userId: string) {
   return prisma.shoppingList.findFirst({ where: { id, userId } });
@@ -19,8 +20,15 @@ export async function PATCH(
 
   const body = await req.json();
   const data: Record<string, unknown> = {};
-  if (body.name !== undefined) data.name = body.name.trim();
+  if (body.name !== undefined) {
+    data.name = body.name.trim();
+    data.slug = await uniqueSlug(body.name.trim(), (s) =>
+      prisma.shoppingList.findFirst({ where: { slug: s, id: { not: id } } }).then(Boolean)
+    );
+  }
   if (body.archived !== undefined) data.archived = body.archived;
+  if (body.pinned !== undefined) data.pinned = body.pinned;
+  if (body.projectId !== undefined) data.projectId = body.projectId ?? null;
 
   const updated = await prisma.shoppingList.update({ where: { id }, data });
   return NextResponse.json(updated);

@@ -20,12 +20,14 @@ interface Render {
   viewCount: number;
   status: RenderStatus;
   folderId: string | null;
+  pinned: boolean;
 }
 
 interface Folder {
   id: string;
   name: string;
   renderCount: number;
+  pinned: boolean;
 }
 
 interface RoomViewProps {
@@ -41,7 +43,14 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const router = useRouter();
 
-  const ungrouped = renders.filter((r) => !r.folderId);
+  const ungrouped = [...renders.filter((r) => !r.folderId)].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return 0;
+  });
+  const sortedFolders = [...folders].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return 0;
+  });
   const hasContent = folders.length > 0 || renders.length > 0;
 
   async function handleRestore(renderId: string) {
@@ -132,9 +141,9 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
         ) : (
           <div className="space-y-8">
             {/* Folder tiles */}
-            {folders.length > 0 && (
+            {sortedFolders.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-                {folders.map((folder) => (
+                {sortedFolders.map((folder) => (
                   <FolderCard key={folder.id} folder={folder} projectId={projectId} roomId={roomId} />
                 ))}
               </div>
@@ -153,6 +162,11 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
                     {ungrouped.map((render) => (
                       <Link key={render.id} href={`/projects/${projectId}/renders/${render.id}`}>
                         <Card className="overflow-hidden hover:shadow-[0_4px_16px_rgba(25,33,61,0.2)] hover:border-[#19213D]/30 transition-all cursor-pointer group relative">
+                          {render.pinned && (
+                            <div className="absolute top-2 left-2 z-10">
+                              <Pin size={13} className="text-red-500 fill-red-500 drop-shadow" />
+                            </div>
+                          )}
                           <div className="aspect-video bg-muted overflow-hidden">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -184,7 +198,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
                                 </span>
                               </div>
                               <div className="flex-shrink-0" onClick={(e) => e.preventDefault()}>
-                                <RenderMenu render={{ id: render.id, name: render.name }} />
+                                <RenderMenu render={{ id: render.id, name: render.name, pinned: render.pinned }} />
                               </div>
                             </div>
                           </div>
@@ -207,7 +221,10 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
                             <img src={render.fileUrl} alt={render.name} className="w-full h-full object-cover" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{render.name}</p>
+                            <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                              {render.pinned && <Pin size={11} className="text-red-500 fill-red-500 flex-shrink-0" />}
+                              {render.name}
+                            </p>
                             <div className="flex items-center gap-2">
                               {render.commentCount > 0 && (
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -230,7 +247,7 @@ export default function RoomView({ projectId, roomId, renders, archivedRenders, 
                           {render.status === "ACCEPTED" ? "Zaakceptowany" : "Do weryfikacji"}
                         </span>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" onClick={(e) => e.preventDefault()}>
-                          <RenderMenu render={{ id: render.id, name: render.name }} />
+                          <RenderMenu render={{ id: render.id, name: render.name, pinned: render.pinned }} />
                         </div>
                       </div>
                     ))}

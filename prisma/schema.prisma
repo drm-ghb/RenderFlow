@@ -32,6 +32,7 @@ model User {
   notifyClientOnReply       Boolean      @default(true)
   allowClientVersionRestore Boolean      @default(true)
   showProjectTitle          Boolean      @default(true)
+  globalHiddenModules       String[]     @default([])
   isAdmin       Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -73,6 +74,7 @@ model Session {
 
 model Project {
   id          String   @id @default(cuid())
+  slug        String?  @unique
   title       String
   clientName  String?
   clientEmail String?
@@ -81,7 +83,9 @@ model Project {
   sharePassword String?
   shareExpiresAt DateTime?
   archived      Boolean   @default(false)
+  pinned        Boolean   @default(false)
   modules       String[]  @default([])
+  hiddenModules String[]  @default([])
   createdAt     DateTime  @default(now())
   updatedAt   DateTime @updatedAt
   userId      String
@@ -90,13 +94,27 @@ model Project {
   rooms         Room[]
   renders       Render[]
   shoppingLists ShoppingList[]
+  clients       ProjectClient[]
+}
+
+model ProjectClient {
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  isMainContact Boolean  @default(false)
+  projectId     String
+  createdAt     DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ShoppingList {
   id         String   @id @default(cuid())
+  slug       String?  @unique
   name       String
   shareToken String   @unique @default(cuid())
   archived   Boolean  @default(false)
+  pinned     Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   userId     String
@@ -166,6 +184,7 @@ model Room {
   icon      String?
   order     Int      @default(0)
   archived  Boolean  @default(false)
+  pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
   projectId String
 
@@ -188,6 +207,7 @@ model Folder {
   name      String
   roomId    String
   order     Int      @default(0)
+  pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   room    Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
@@ -201,6 +221,7 @@ model Render {
   fileKey   String
   order     Int          @default(0)
   archived  Boolean      @default(false)
+  pinned    Boolean      @default(false)
   status    RenderStatus @default(REVIEW)
   viewCount Int          @default(0)
   createdAt DateTime     @default(now())

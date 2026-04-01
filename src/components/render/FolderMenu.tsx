@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Pin, PinOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface FolderMenuProps {
-  folder: { id: string; name: string };
+  folder: { id: string; name: string; pinned?: boolean };
 }
 
 export default function FolderMenu({ folder }: FolderMenuProps) {
@@ -30,13 +30,28 @@ export default function FolderMenu({ folder }: FolderMenuProps) {
   const [name, setName] = useState(folder.name);
   const [loading, setLoading] = useState(false);
 
+  async function handlePin() {
+    const res = await fetch(`/api/folders/${folder.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned: !folder.pinned }),
+    });
+    if (res.ok) {
+      toast.success(folder.pinned ? "Odpięto folder" : "Folder przypięty");
+      setRenameOpen(false);
+      router.refresh();
+    } else {
+      toast.error("Błąd operacji");
+    }
+  }
+
   async function handleRename() {
     if (!name.trim()) return;
     setLoading(true);
     const res = await fetch(`/api/folders/${folder.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name: name.trim() }),
     });
     setLoading(false);
     if (res.ok) {
@@ -69,6 +84,11 @@ export default function FolderMenu({ folder }: FolderMenuProps) {
           <MoreHorizontal size={16} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handlePin}>
+            {folder.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+            {folder.pinned ? "Odepnij" : "Przypnij"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => { setName(folder.name); setRenameOpen(true); }}>
             <Pencil size={14} />
             Zmień nazwę

@@ -61,13 +61,13 @@ export default function ShareNavbar({ backHref, backLabel, clientLogoUrl, design
               ) : (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/planospace-logo.svg" alt="Planospace" width={28} height={28} className="block dark:hidden" />
+                  <img src="/planospace-logo.svg" alt="Veedeck" width={28} height={28} className="block dark:hidden" />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/planospace-logo-dark.svg" alt="Planospace" width={28} height={28} className="hidden dark:block" />
+                  <img src="/planospace-logo-dark.svg" alt="Veedeck" width={28} height={28} className="hidden dark:block" />
                 </>
               )}
               <span className="text-xl font-bold tracking-tight">
-                {designerName ?? "Planospace"}
+                {designerName ?? "Veedeck"}
               </span>
             </div>
           </div>

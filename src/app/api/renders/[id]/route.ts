@@ -39,6 +39,7 @@ export async function PATCH(
   if (body.archived !== undefined) updateData.archived = body.archived;
   if (body.name !== undefined) updateData.name = body.name;
   if (body.status !== undefined) updateData.status = body.status;
+  if (body.pinned !== undefined) updateData.pinned = body.pinned;
 
   const updated = await prisma.render.update({ where: { id }, data: updateData });
 

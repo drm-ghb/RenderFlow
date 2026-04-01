@@ -67,6 +67,7 @@ export default async function RoomPage({ params }: Props) {
           viewCount: r.viewCount,
           status: r.status,
           folderId: r.folderId ?? null,
+          pinned: r.pinned,
         }))}
         archivedRenders={archivedRenders.map((r) => ({
           id: r.id,
@@ -76,11 +77,13 @@ export default async function RoomPage({ params }: Props) {
           viewCount: r.viewCount,
           status: r.status,
           folderId: r.folderId ?? null,
+          pinned: r.pinned,
         }))}
         folders={folders.map((f) => ({
           id: f.id,
           name: f.name,
           renderCount: renders.filter((r) => r.folderId === f.id).length,
+          pinned: f.pinned,
         }))}
       />
     </div>

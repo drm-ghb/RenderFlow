@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShoppingCart, Search, LayoutGrid, List, SlidersHorizontal, Link2, MoreHorizontal, Pencil, Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { ShoppingCart, Search, LayoutGrid, List, SlidersHorizontal, Link2, MoreHorizontal, Pencil, Archive, ArchiveRestore, Trash2, Pin, PinOff, AlertTriangle, Check } from "lucide-react";
 import NewListDialog from "./NewListDialog";
+import EditListDialog from "./EditListDialog";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -12,14 +14,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface ShoppingList {
   id: string;
+  slug: string | null;
   name: string;
   shareToken: string;
   archived: boolean;
+  pinned: boolean;
   createdAt: string;
-  project: { id: string; title: string } | null;
+  project: { id: string; title: string; hiddenModules: string[] } | null;
 }
 
 interface ListyViewProps {
@@ -29,21 +41,19 @@ interface ListyViewProps {
 type SortOption = "newest" | "oldest" | "az" | "za";
 type Tab = "active" | "archived";
 
-function copyShareLink(shareToken: string) {
-  const url = `${window.location.origin}/share/list/${shareToken}`;
-  navigator.clipboard.writeText(url);
-  toast.success("Link skopiowany do schowka");
-}
-
 export default function ListyView({ lists: initialLists }: ListyViewProps) {
+  const router = useRouter();
   const [lists, setLists] = useState<ShoppingList[]>(initialLists);
   const [tab, setTab] = useState<Tab>("active");
   const [view, setView] = useState<"grid" | "list">("list");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const renameRef = useRef<HTMLInputElement>(null);
+  const [editingList, setEditingList] = useState<ShoppingList | null>(null);
+  const [warningLink, setWarningLink] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLists(initialLists);
+  }, [initialLists]);
 
   useEffect(() => {
     const saved = localStorage.getItem("listy-view");
@@ -53,30 +63,6 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
   function toggleView(v: "grid" | "list") {
     setView(v);
     localStorage.setItem("listy-view", v);
-  }
-
-  function startRename(list: ShoppingList) {
-    setRenamingId(list.id);
-    setRenameValue(list.name);
-    setTimeout(() => renameRef.current?.focus(), 50);
-  }
-
-  async function saveRename(id: string) {
-    const name = renameValue.trim();
-    setRenamingId(null);
-    if (!name || name === lists.find((l) => l.id === id)?.name) return;
-    setLists((prev) => prev.map((l) => l.id === id ? { ...l, name } : l));
-    try {
-      const res = await fetch(`/api/lists/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      if (!res.ok) throw new Error();
-    } catch {
-      toast.error("Błąd zmiany nazwy");
-      setLists(initialLists);
-    }
   }
 
   async function toggleArchive(list: ShoppingList) {
@@ -109,13 +95,41 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
     }
   }
 
+  function handleCopyLink(list: ShoppingList) {
+    const url = `${window.location.origin}/share/list/${list.shareToken}`;
+    if (list.project?.hiddenModules.includes("listy")) {
+      setWarningLink(url);
+      return;
+    }
+    navigator.clipboard.writeText(url);
+    toast.success("Link skopiowany do schowka");
+  }
+
   const activeLists = lists.filter((l) => !l.archived);
   const archivedLists = lists.filter((l) => l.archived);
   const tabLists = tab === "active" ? activeLists : archivedLists;
 
+  async function togglePin(list: ShoppingList) {
+    const pinned = !list.pinned;
+    setLists((prev) => prev.map((l) => l.id === list.id ? { ...l, pinned } : l));
+    try {
+      const res = await fetch(`/api/lists/${list.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pinned }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(pinned ? "Lista przypięta" : "Odpięto listę");
+    } catch {
+      toast.error("Błąd operacji");
+      setLists(initialLists);
+    }
+  }
+
   const filtered = tabLists
     .filter((l) => l.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       switch (sort) {
         case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case "az":     return a.name.localeCompare(b.name, "pl");
@@ -134,10 +148,15 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
         >
           <MoreHorizontal size={15} />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => startRename(list)}>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => togglePin(list)}>
+            {list.pinned ? <PinOff size={13} className="mr-2" /> : <Pin size={13} className="mr-2" />}
+            {list.pinned ? "Odepnij" : "Przypnij"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setEditingList(list)}>
             <Pencil size={13} className="mr-2" />
-            Zmień nazwę
+            Edytuj
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => toggleArchive(list)}>
             {list.archived ? <ArchiveRestore size={13} className="mr-2" /> : <Archive size={13} className="mr-2" />}
@@ -154,6 +173,7 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
   }
 
   return (
+    <>
     <div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
@@ -277,27 +297,17 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
           {filtered.map((list) => (
             <div key={list.id} className="rounded-xl border border-border bg-card hover:shadow-sm hover:border-[#19213D]/20 transition-all group relative">
-              <Link href={`/listy/${list.id}`} className="flex items-start gap-3 p-4 pr-16 block">
+              {list.pinned && (
+                <div className="absolute top-3 left-3 z-10">
+                  <Pin size={12} className="text-red-500 fill-red-500" />
+                </div>
+              )}
+              <Link href={`/listy/${list.slug ?? list.id}`} className={`flex items-start gap-3 p-4 pr-16 block ${list.pinned ? "pl-8" : ""}`}>
                 <div className="w-9 h-9 rounded-lg bg-[#19213D]/10 flex items-center justify-center shrink-0">
                   <ShoppingCart size={16} className="text-[#19213D]" />
                 </div>
                 <div className="min-w-0">
-                  {renamingId === list.id ? (
-                    <input
-                      ref={renameRef}
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onBlur={() => saveRename(list.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") saveRename(list.id);
-                        if (e.key === "Escape") setRenamingId(null);
-                      }}
-                      onClick={(e) => e.preventDefault()}
-                      className="font-semibold text-sm text-foreground bg-transparent border-b border-[#19213D]/40 focus:outline-none focus:border-[#19213D] w-full"
-                    />
-                  ) : (
-                    <p className="font-semibold text-sm text-foreground truncate">{list.name}</p>
-                  )}
+                  <p className="font-semibold text-sm text-foreground truncate">{list.name}</p>
                   {list.project ? (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{list.project.title}</p>
                   ) : (
@@ -307,7 +317,7 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
               </Link>
               <div className="absolute top-3 right-3 flex items-center gap-0.5">
                 <button
-                  onClick={(e) => { e.preventDefault(); copyShareLink(list.shareToken); }}
+                  onClick={(e) => { e.preventDefault(); handleCopyLink(list); }}
                   className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   title="Skopiuj link"
                 >
@@ -332,37 +342,25 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
           {filtered.map((list, i) => (
             <div
               key={list.id}
-              className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_180px_140px_72px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors group ${i !== filtered.length - 1 ? "border-b border-border" : ""}`}
+              onClick={() => router.push(`/listy/${list.slug ?? list.id}`)}
+              className={`grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_180px_140px_72px] gap-4 px-5 py-4 items-center hover:bg-muted/30 transition-colors group cursor-pointer ${i !== filtered.length - 1 ? "border-b border-border" : ""}`}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-[#19213D]/10 flex items-center justify-center shrink-0">
                   <ShoppingCart size={14} className="text-[#19213D]" />
                 </div>
-                {renamingId === list.id ? (
-                  <input
-                    ref={renameRef}
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={() => saveRename(list.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") saveRename(list.id);
-                      if (e.key === "Escape") setRenamingId(null);
-                    }}
-                    className="font-semibold text-gray-900 dark:text-gray-100 bg-transparent border-b border-[#19213D]/40 focus:outline-none focus:border-[#19213D] min-w-0 flex-1"
-                  />
-                ) : (
-                  <Link href={`/listy/${list.id}`} className="font-semibold text-gray-900 dark:text-gray-100 truncate hover:underline">
-                    {list.name}
-                  </Link>
-                )}
+                <span className="font-semibold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1.5">
+                  {list.pinned && <Pin size={11} className="text-red-500 fill-red-500 flex-shrink-0" />}
+                  {list.name}
+                </span>
               </div>
               <p className="hidden sm:block text-sm text-muted-foreground truncate">{list.project?.title ?? "—"}</p>
               <p className="hidden sm:block text-sm text-muted-foreground whitespace-nowrap">
                 {new Date(list.createdAt).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" })}
               </p>
-              <div className="flex items-center justify-end gap-0.5">
+              <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                 <button
-                  onClick={() => copyShareLink(list.shareToken)}
+                  onClick={() => handleCopyLink(list)}
                   className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   title="Skopiuj link"
                 >
@@ -375,5 +373,39 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
         </div>
       )}
     </div>
+
+      {editingList && (
+        <EditListDialog
+          list={editingList}
+          open={!!editingList}
+          onOpenChange={(open) => { if (!open) setEditingList(null); }}
+        />
+      )}
+
+      <Dialog open={!!warningLink} onOpenChange={(open) => { if (!open) setWarningLink(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              Moduł jest ukryty dla klienta
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Moduł <strong>Listy zakupowe</strong> jest oznaczony jako <strong>NIE WIDOCZNY</strong> dla klienta. Przed udostępnieniem linku zmień to w ustawieniach projektu.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setWarningLink(null)}>Zamknij</Button>
+            <Button variant="ghost" className="gap-1.5" onClick={() => {
+              if (warningLink) navigator.clipboard.writeText(warningLink);
+              setWarningLink(null);
+              toast.success("Link skopiowany do schowka");
+            }}>
+              <Check size={14} />
+              Mimo to skopiuj
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -37,7 +37,7 @@ export default async function ProjectPage({ params }: Props) {
 
   return (
     <div>
-      <Breadcrumb backHref="/dashboard" items={[
+      <Breadcrumb backHref="/renderflow" items={[
         { label: project.title },
       ]} />
 
@@ -51,7 +51,7 @@ export default async function ProjectPage({ params }: Props) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <ShareDialog shareUrl={shareUrl} />
+          <ShareDialog shareUrl={shareUrl} hiddenModules={project.hiddenModules} />
           <AddRoomDialog projectId={id} />
         </div>
       </div>

@@ -53,6 +53,7 @@ export default async function FolderPage({ params }: Props) {
           commentCount: r._count.comments,
           viewCount: r.viewCount,
           status: r.status,
+          pinned: r.pinned,
         }))}
       />
     </div>

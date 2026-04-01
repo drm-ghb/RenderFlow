@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LayoutGrid, List, Search, ArchiveRestore, Trash2, SlidersHorizontal } from "lucide-react";
+import { LayoutGrid, List, Search, ArchiveRestore, Trash2, SlidersHorizontal, Pin, AlertTriangle, Check } from "lucide-react";
 import ProjectCard from "./ProjectCard";
 import ProjectMenu from "./ProjectMenu";
 import NewProjectDialog from "./NewProjectDialog";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface Project {
   id: string;
@@ -20,6 +21,8 @@ interface Project {
   renderCount: number;
   createdAt: string;
   shareToken: string;
+  pinned: boolean;
+  hiddenModules: string[];
 }
 
 interface ProjectsViewProps {
@@ -54,6 +57,7 @@ export default function ProjectsView({ projects, archivedProjects }: ProjectsVie
       );
     })
     .sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       switch (sort) {
         case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case "az": return a.title.localeCompare(b.title, "pl");
@@ -216,7 +220,7 @@ export default function ProjectsView({ projects, archivedProjects }: ProjectsVie
         ) : view === "grid" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             {filtered.map((p) => (
-              <ProjectCard key={p.id} {...p} />
+              <ProjectCard key={p.id} {...p} pinned={p.pinned} />
             ))}
           </div>
         ) : (
@@ -273,13 +277,20 @@ export default function ProjectsView({ projects, archivedProjects }: ProjectsVie
 }
 
 function ProjectListView({ projects }: { projects: Project[] }) {
-  function copyShareLink(shareToken: string) {
-    const url = `${window.location.origin}/share/${shareToken}`;
+  const [warningLink, setWarningLink] = useState<string | null>(null);
+
+  function handleCopyLink(p: Project) {
+    const url = `${window.location.origin}/share/${p.shareToken}`;
+    if (p.hiddenModules.includes("renderflow")) {
+      setWarningLink(url);
+      return;
+    }
     navigator.clipboard.writeText(url);
     toast.success("Link skopiowany do schowka");
   }
 
   return (
+    <>
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-[1fr_80px] sm:grid-cols-[1fr_180px_160px_80px] gap-4 px-5 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-400 uppercase tracking-wide">
@@ -297,7 +308,8 @@ function ProjectListView({ projects }: { projects: Project[] }) {
         >
           {/* Title + description */}
           <div className="min-w-0">
-            <Link href={`/projects/${p.id}`} className="font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate block">
+            <Link href={`/projects/${p.id}`} className="font-semibold text-gray-900 truncate flex items-center gap-1.5">
+              {p.pinned && <Pin size={12} className="text-red-500 fill-red-500 flex-shrink-0" />}
               {p.title}
             </Link>
             {p.description && (
@@ -333,7 +345,7 @@ function ProjectListView({ projects }: { projects: Project[] }) {
               size="sm"
               variant="ghost"
               className="text-xs text-gray-400 hover:text-blue-600"
-              onClick={() => copyShareLink(p.shareToken)}
+              onClick={() => handleCopyLink(p)}
               title="Skopiuj link"
             >
               🔗
@@ -345,11 +357,38 @@ function ProjectListView({ projects }: { projects: Project[] }) {
                 clientName: p.clientName,
                 clientEmail: p.clientEmail,
                 description: p.description,
+                pinned: p.pinned,
               }}
             />
           </div>
         </div>
       ))}
     </div>
+
+      <Dialog open={!!warningLink} onOpenChange={(open) => { if (!open) setWarningLink(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              Moduł jest ukryty dla klienta
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Moduł <strong>RenderFlow</strong> jest oznaczony jako <strong>NIE WIDOCZNY</strong> dla klienta. Przed udostępnieniem linku zmień to w ustawieniach projektu.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setWarningLink(null)}>Zamknij</Button>
+            <Button variant="ghost" className="gap-1.5" onClick={() => {
+              if (warningLink) navigator.clipboard.writeText(warningLink);
+              setWarningLink(null);
+              toast.success("Link skopiowany do schowka");
+            }}>
+              <Check size={14} />
+              Mimo to skopiuj
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
