@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { User, Mail, Lock, Info, Sun, Moon, Monitor, Palette, Image as ImageIcon, Layers, ShoppingCart } from "lucide-react";
+import { User, Mail, Lock, Info, Sun, Moon, Monitor, Palette, Image as ImageIcon, Layers, ShoppingCart, LayoutDashboard, PanelLeft } from "lucide-react";
 import Image from "next/image";
 import { useTheme, type Theme } from "@/lib/theme";
 import { UploadButton } from "@uploadthing/react";
@@ -27,6 +27,7 @@ interface Props {
   initialClientLogoUrl: string | null;
   initialClientWelcomeMessage: string | null;
   initialAccentColor: string | null;
+  initialNavMode: string;
 }
 
 export function SettingsGeneral({
@@ -37,6 +38,7 @@ export function SettingsGeneral({
   initialClientLogoUrl,
   initialClientWelcomeMessage,
   initialAccentColor,
+  initialNavMode,
 }: Props) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -56,6 +58,7 @@ export function SettingsGeneral({
   const [welcomeMsg, setWelcomeMsg] = useState(initialClientWelcomeMessage ?? "");
   const [welcomeLoading, setWelcomeLoading] = useState(false);
   const [accentColor, setAccentColor] = useState(initialAccentColor ?? "#2563eb");
+  const [navMode, setNavMode] = useState(initialNavMode);
 
   async function handleNameSave() {
     if (!name.trim()) return;
@@ -119,6 +122,13 @@ export function SettingsGeneral({
       if (res.ok) toast.success("Zapisano");
       else toast.error("Błąd podczas zapisywania");
     } finally { setWelcomeLoading(false); }
+  }
+
+  async function handleNavModeChange(mode: string) {
+    setNavMode(mode);
+    const res = await patchUser({ navMode: mode });
+    if (res.ok) toast.success("Zapisano");
+    else { setNavMode(navMode); toast.error("Błąd podczas zapisywania"); }
   }
 
   async function handleAccentColorSave(color: string) {
@@ -321,6 +331,54 @@ export function SettingsGeneral({
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* ── Nawigacja ── */}
+      <section className="space-y-4">
+        <SectionHeader title="Nawigacja" />
+
+        <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <PanelLeft size={16} className="text-gray-400" />
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200">Sposób nawigacji między modułami</h3>
+          </div>
+          <p className="text-xs text-gray-400">Wybierz jak chcesz poruszać się między modułami aplikacji.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              {
+                value: "dashboard",
+                label: "Dashboard",
+                description: "Strona główna z kafelkami modułów. Kliknij moduł, aby do niego przejść.",
+                Icon: LayoutDashboard,
+              },
+              {
+                value: "sidebar",
+                label: "Pasek boczny",
+                description: "Stały pasek po lewej stronie z listą modułów widoczny przez cały czas.",
+                Icon: PanelLeft,
+              },
+            ].map(({ value, label, description, Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleNavModeChange(value)}
+                className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-colors ${
+                  navMode === value
+                    ? "border-primary bg-primary/5 dark:bg-primary/10"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                <div className={`mt-0.5 flex-shrink-0 ${navMode === value ? "text-primary" : "text-gray-400"}`}>
+                  <Icon size={20} />
+                </div>
+                <div>
+                  <p className={`text-sm font-medium ${navMode === value ? "text-primary" : "text-gray-700 dark:text-gray-300"}`}>{label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 

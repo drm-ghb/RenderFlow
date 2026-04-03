@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { LayoutGrid, Settings, Sun, Moon, Monitor, UserRound } from "lucide-react";
+import { Grid2x2, Settings, Sun, Moon, Monitor, UserRound } from "lucide-react";
 import { useTheme, type Theme } from "@/lib/theme";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ export default function ShareNavbar({ backHref, backLabel, clientLogoUrl, design
   return (
     <>
       <nav className="bg-card border-b">
-        <div className="container mx-auto px-3 sm:px-6 max-w-6xl flex items-center justify-between py-3 gap-4">
+        <div className="px-3 sm:px-6 flex items-center justify-between py-3 gap-4">
           {/* Left: back icon + logo */}
           <div className="flex items-center gap-3 shrink-0">
             {backHref && (
@@ -51,7 +51,7 @@ export default function ShareNavbar({ backHref, backLabel, clientLogoUrl, design
                 title={backLabel ?? "Strona główna projektu"}
                 className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"
               >
-                <LayoutGrid size={20} />
+                <Grid2x2 size={18} />
               </Link>
             )}
             <div className="flex items-center gap-2.5">

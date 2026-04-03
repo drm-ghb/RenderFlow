@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { Settings, ShoppingCart } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Settings, ShoppingCart, ChevronLeft } from "lucide-react";
 
 const items = [
   {
     href: "/settings/ogolne",
     label: "Ustawienia ogólne",
     icon: <Settings size={16} />,
+    module: null,
   },
   {
     href: "/settings/renderflow",
@@ -20,19 +21,35 @@ const items = [
         <Image src="/logo.svg" alt="RenderFlow" width={16} height={16} className="block dark:hidden" />
       </span>
     ),
+    module: { href: "/projekty", label: "RenderFlow" },
   },
   {
     href: "/settings/listy",
     label: "Listy",
     icon: <ShoppingCart size={16} />,
+    module: { href: "/listy", label: "Listy" },
   },
 ];
 
 export default function SettingsSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const activeItem = items.find(
+    (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+  );
+  const backModule = activeItem?.module ?? null;
 
   return (
-    <nav className="w-48 shrink-0">
+    <nav className="w-48 shrink-0 space-y-4">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group w-full"
+      >
+        <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+        {backModule ? `Wróć do ${backModule.label}` : "Wróć"}
+      </button>
+
       <ul className="space-y-0.5">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");

@@ -223,7 +223,7 @@ export default function ProjectDetailView({ project }: { project: ProjectData })
   };
 
   return (
-    <div>
+    <div className="max-w-3xl">
       {/* Back nav */}
       <div className="mb-6">
         <Link

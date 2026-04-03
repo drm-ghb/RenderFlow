@@ -27,6 +27,12 @@ export default async function RenderPage({ params }: Props) {
 
   if (!render || render.project.userId !== session!.user!.id!) notFound();
 
+  const navUser = await prisma.user.findUnique({
+    where: { id: session!.user!.id! },
+    select: { navMode: true },
+  });
+  const sidebarVisible = navUser?.navMode === "sidebar";
+
   const roomRenders = render.roomId
     ? await prisma.render.findMany({
         where: {
@@ -40,7 +46,7 @@ export default async function RenderPage({ params }: Props) {
     : [];
 
   return (
-    <div className="fixed inset-0 top-[57px] z-20 bg-background">
+    <div className={`fixed inset-0 top-[57px] z-20 bg-background ${sidebarVisible ? "md:left-14" : ""}`}>
       <RenderViewer
         renderId={render.id}
         renderName={render.name}

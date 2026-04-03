@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ExternalLink, MessageSquare } from "lucide-react";
+import { ExternalLink, MessageSquare, Check, X, RotateCcw } from "lucide-react";
 import ProductCommentPanel from "./ProductCommentPanel";
+import { pusherClient } from "@/lib/pusher";
+
+import { getUnreadSet, syncListUnread } from "@/lib/list-unread-store";
 
 function parsePrice(price: string | null): number | null {
   if (!price) return null;
@@ -30,6 +33,7 @@ interface Product {
   quantity: number;
   order: number;
   commentCount: number;
+  approval: string | null;
 }
 
 interface Section {
@@ -40,6 +44,8 @@ interface Section {
 }
 
 interface ShareListClientProps {
+  listId: string;
+  listShareToken: string;
   listName: string;
   projectTitle?: string;
   projectShareToken?: string;
@@ -47,9 +53,13 @@ interface ShareListClientProps {
   grandTotal: number;
   grandCurrency: string;
   hasTotal: boolean;
+  designerName?: string;
+  designerLogoUrl?: string;
 }
 
 export default function ShareListClient({
+  listId,
+  listShareToken,
   listName,
   projectTitle,
   projectShareToken,
@@ -57,8 +67,20 @@ export default function ShareListClient({
   grandTotal,
   grandCurrency,
   hasTotal,
+  designerName,
+  designerLogoUrl,
 }: ShareListClientProps) {
   const [commentsPanelProductId, setCommentsPanelProductId] = useState<string | null>(null);
+  const [panelLastReadAt, setPanelLastReadAt] = useState<string | null>(null);
+  const [approvals, setApprovals] = useState<Record<string, string | null>>(() => {
+    const init: Record<string, string | null> = {};
+    for (const s of sections) {
+      for (const p of s.products) {
+        init[p.id] = p.approval ?? null;
+      }
+    }
+    return init;
+  });
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
     for (const s of sections) {
@@ -68,16 +90,110 @@ export default function ShareListClient({
     }
     return init;
   });
+  const [unreadProducts, setUnreadProducts] = useState<Set<string>>(() => new Set(getUnreadSet(listId)));
   const [authorName, setAuthorName] = useState("Klient");
+  const commentsPanelProductIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    commentsPanelProductIdRef.current = commentsPanelProductId;
+  }, [commentsPanelProductId]);
 
   useEffect(() => {
     const stored = localStorage.getItem("renderflow-author");
     if (stored) setAuthorName(stored);
+    // Initialize unread set from localStorage + module-level store
+    const store = getUnreadSet(listId);
+    const unread = new Set<string>(store);
+    for (const s of sections) {
+      for (const p of s.products) {
+        if (localStorage.getItem(`lc_unread_${p.id}`) === "1") {
+          unread.add(p.id);
+          store.add(p.id);
+          continue;
+        }
+        const val = localStorage.getItem(`lc_seen_${p.id}`);
+        if (val === null) {
+          localStorage.setItem(`lc_seen_${p.id}`, String(p.commentCount));
+        } else if (p.commentCount > parseInt(val)) {
+          unread.add(p.id);
+          store.add(p.id);
+          localStorage.setItem(`lc_unread_${p.id}`, "1");
+        }
+      }
+    }
+    setUnreadProducts(new Set(unread));
+    syncListUnread(listId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Real-time badge updates via list-level Pusher channel
+  useEffect(() => {
+    const channel = pusherClient.subscribe(`shopping-list-${listId}`);
+    channel.bind("comment-activity", ({ productId, action }: { productId: string; action: string }) => {
+      if (commentsPanelProductIdRef.current === productId) return; // panel handles it
+      setCommentCounts((prev) => ({
+        ...prev,
+        [productId]: action === "new" ? (prev[productId] ?? 0) + 1 : Math.max(0, (prev[productId] ?? 0) - 1),
+      }));
+      if (action === "new") {
+        localStorage.setItem(`lc_unread_${productId}`, "1");
+        getUnreadSet(listId).add(productId);
+        syncListUnread(listId);
+        setUnreadProducts((prev) => new Set([...prev, productId]));
+      }
+    });
+    channel.bind("approval-change", ({ productId, approval }: { productId: string; approval: string | null }) => {
+      setApprovals((prev) => ({ ...prev, [productId]: approval }));
+    });
+    return () => {
+      channel.unbind("comment-activity");
+      channel.unbind("approval-change");
+      pusherClient.unsubscribe(`shopping-list-${listId}`);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listId]);
+
+  async function handleApproval(productId: string, value: "accepted" | "rejected" | null) {
+    const prevApproval = approvals[productId];
+    setApprovals((prev) => ({ ...prev, [productId]: value }));
+    try {
+      const res = await fetch(`/api/share/list/${listShareToken}/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approval: value, clientName: authorName }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setApprovals((prev) => ({ ...prev, [productId]: prevApproval }));
+    }
+  }
 
   const handleCountChange = useCallback((productId: string, count: number) => {
     setCommentCounts((prev) => ({ ...prev, [productId]: count }));
   }, []);
+
+  function openCommentsPanel(productId: string) {
+    const lastReadAt = localStorage.getItem(`lc_readAt_${productId}`);
+    localStorage.setItem(`lc_readAt_${productId}`, new Date().toISOString());
+    localStorage.removeItem(`lc_unread_${productId}`);
+    getUnreadSet(listId).delete(productId);
+    syncListUnread(listId);
+    setUnreadProducts((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+    setPanelLastReadAt(lastReadAt);
+    setCommentsPanelProductId(productId);
+  }
+
+  function closeCommentsPanel() {
+    if (commentsPanelProductId) {
+      const currentCount = commentCounts[commentsPanelProductId] ?? 0;
+      localStorage.setItem(`lc_seen_${commentsPanelProductId}`, String(currentCount));
+    }
+    setCommentsPanelProductId(null);
+  }
 
   const homeHref = projectShareToken ? `/share/${projectShareToken}/home` : undefined;
 
@@ -118,21 +234,35 @@ export default function ShareListClient({
                 const last = i === section.products.length - 1;
                 const count = commentCounts[product.id] ?? product.commentCount;
 
+                const unread = unreadProducts.has(product.id);
+                const approval = approvals[product.id] ?? null;
                 return (
-                  <div key={product.id} className={`flex items-center gap-4 px-4 py-3 ${!last ? "border-b border-border" : ""}`}>
+                  <div key={product.id} className={`flex items-center gap-2 px-4 py-4 hover:bg-muted/30 transition-colors ${!last ? "border-b border-border" : ""}`}>
                     <span className="w-5 text-right text-xs text-muted-foreground tabular-nums shrink-0">{i + 1}</span>
 
-                    <div className="w-14 h-14 shrink-0 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                    <div className="w-32 h-32 shrink-0 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
                       {product.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
                       ) : (
-                        <span className="text-lg text-muted-foreground/30 select-none">📦</span>
+                        <span className="text-3xl text-muted-foreground/30 select-none">📦</span>
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm truncate">{product.name}</p>
+                        {approval === "accepted" && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
+                            Zaakceptowane
+                          </span>
+                        )}
+                        {approval === "rejected" && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
+                            Odrzucone
+                          </span>
+                        )}
+                      </div>
                       {product.manufacturer && <p className="text-xs text-muted-foreground mt-0.5">{product.manufacturer}</p>}
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
                         {product.color && <span className="text-xs text-muted-foreground">Kolor: {product.color}</span>}
@@ -166,15 +296,39 @@ export default function ShareListClient({
                         </a>
                       ) : <span className="w-4" />}
 
+                      {/* Approval buttons */}
+                      <button
+                        onClick={() => handleApproval(product.id, approval === "accepted" ? null : "accepted")}
+                        className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
+                          approval === "accepted"
+                            ? "bg-green-500 text-white"
+                            : "text-muted-foreground hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                        }`}
+                        title={approval === "accepted" ? "Cofnij akceptację" : "Zaakceptuj"}
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleApproval(product.id, approval === "rejected" ? null : "rejected")}
+                        className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
+                          approval === "rejected"
+                            ? "bg-red-500 text-white"
+                            : "text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                        }`}
+                        title={approval === "rejected" ? "Cofnij odrzucenie" : "Odrzuć"}
+                      >
+                        <X size={14} />
+                      </button>
+
                       {/* Comment icon */}
                       <button
-                        onClick={() => setCommentsPanelProductId(product.id)}
+                        onClick={() => openCommentsPanel(product.id)}
                         className="relative flex items-center justify-center w-7 h-7 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         title="Komentarze"
                       >
-                        <MessageSquare size={14} />
+                        <MessageSquare size={14} className={unread ? "text-blue-500" : ""} />
                         {count > 0 && (
-                          <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-[#19213D] text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
+                          <span className={`absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none transition-colors ${unread ? "bg-blue-500" : "bg-[#19213D]"}`}>
                             {count > 99 ? "99+" : count}
                           </span>
                         )}
@@ -196,7 +350,10 @@ export default function ShareListClient({
             productName={product.name}
             isDesigner={false}
             authorName={authorName}
-            onClose={() => setCommentsPanelProductId(null)}
+            designerName={designerName}
+            designerLogoUrl={designerLogoUrl}
+            lastReadAt={panelLastReadAt}
+            onClose={closeCommentsPanel}
             onCountChange={handleCountChange}
           />
         ) : null;

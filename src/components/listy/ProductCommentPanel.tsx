@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Send, Trash2, CornerDownRight } from "lucide-react";
 import { pusherClient } from "@/lib/pusher";
 import { toast } from "sonner";
@@ -25,6 +25,9 @@ interface ProductCommentPanelProps {
   productName: string;
   isDesigner: boolean;
   authorName: string;
+  designerName?: string;
+  designerLogoUrl?: string;
+  lastReadAt: string | null;
   onClose: () => void;
   onCountChange?: (productId: string, count: number) => void;
 }
@@ -39,7 +42,13 @@ function formatDate(iso: string) {
   });
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, logoUrl }: { name: string; logoUrl?: string }) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={logoUrl} alt={name} className="w-7 h-7 rounded-full object-cover shrink-0" />
+    );
+  }
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -58,6 +67,9 @@ export default function ProductCommentPanel({
   productName,
   isDesigner,
   authorName,
+  designerName,
+  designerLogoUrl,
+  lastReadAt,
   onClose,
   onCountChange,
 }: ProductCommentPanelProps) {
@@ -68,8 +80,20 @@ export default function ProductCommentPanel({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [showHighlights, setShowHighlights] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!lastReadAt) return;
+    const timer = setTimeout(() => setShowHighlights(false), 2000);
+    return () => clearTimeout(timer);
+  }, [lastReadAt]);
+
+  const isUnread = useCallback((comment: Comment) => {
+    if (!lastReadAt) return false;
+    return new Date(comment.createdAt) > new Date(lastReadAt);
+  }, [lastReadAt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -228,15 +252,27 @@ export default function ProductCommentPanel({
           </p>
         )}
 
-        {comments.map((comment) => (
-          <div key={comment.id} className="space-y-1.5">
+        {comments.map((comment) => {
+          const unread = isUnread(comment);
+          return (
+          <div
+            key={comment.id}
+            className={`space-y-1.5 rounded-lg px-2 -mx-2 transition-colors duration-1000 ${
+              showHighlights && unread ? "bg-blue-50 dark:bg-blue-950/20" : "bg-transparent"
+            }`}
+          >
             {/* Comment */}
-            <div className="group flex gap-2">
-              <Avatar name={comment.author} />
+            <div className="group flex gap-2 pt-1.5">
+              <Avatar name={comment.author} logoUrl={comment.author === designerName ? designerLogoUrl : undefined} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-2 flex-wrap">
                   <span className="text-xs font-semibold truncate">{comment.author}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">{formatDate(comment.createdAt)}</span>
+                  {showHighlights && unread && (
+                    <span className="text-[9px] font-semibold text-blue-500 bg-blue-100 dark:bg-blue-900/40 px-1 py-0.5 rounded leading-none transition-opacity duration-1000">
+                      Nowy
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-foreground mt-0.5 break-words">{comment.content}</p>
                 <div className="flex items-center gap-2 mt-1">
@@ -261,7 +297,7 @@ export default function ProductCommentPanel({
             {/* Replies */}
             {comment.replies.map((reply) => (
               <div key={reply.id} className="group flex gap-2 pl-4 border-l-2 border-border ml-3">
-                <Avatar name={reply.author} />
+                <Avatar name={reply.author} logoUrl={reply.author === designerName ? designerLogoUrl : undefined} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <span className="text-xs font-semibold truncate">{reply.author}</span>
@@ -308,7 +344,8 @@ export default function ProductCommentPanel({
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 

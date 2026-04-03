@@ -16,6 +16,15 @@ import { Loader2, ExternalLink, ImagePlus, X } from "lucide-react";
 import { UploadButton } from "@uploadthing/react";
 import type { OurFileRouter } from "@/lib/uploadthing";
 
+const CATEGORIES = [
+  { value: "LAMPY", label: "Lampy" },
+  { value: "AKCESORIA", label: "Akcesoria" },
+  { value: "MEBLE", label: "Meble" },
+  { value: "ARMATURA", label: "Armatura" },
+  { value: "OKLADZINY_SCIENNE", label: "Okładziny ścienne" },
+  { value: "PODLOGA", label: "Podłoga" },
+];
+
 interface ProductData {
   name: string;
   url: string;
@@ -26,6 +35,7 @@ interface ProductData {
   size: string;
   description: string;
   deliveryTime: string;
+  category: string;
 }
 
 interface EditProductDialogProps {
@@ -55,6 +65,7 @@ export default function EditProductDialog({
     size: product.size ?? "",
     description: product.description ?? "",
     deliveryTime: product.deliveryTime ?? "",
+    category: product.category ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -92,7 +103,8 @@ export default function EditProductDialog({
           <DialogTitle>Edytuj produkt</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+          <div className="space-y-4 overflow-y-auto pr-1" style={{ maxHeight: "calc(60vh - 48px)" }}>
           {/* Image */}
           <div className="space-y-1.5">
             <Label>Zdjęcie produktu</Label>
@@ -178,6 +190,21 @@ export default function EditProductDialog({
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="ep-category">Kategoria</Label>
+            <select
+              id="ep-category"
+              value={form.category}
+              onChange={(e) => set("category", e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#19213D]/20 focus:border-[#19213D]/40"
+            >
+              <option value="">Brak kategorii</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="ep-url">Link do produktu</Label>
             <div className="relative">
               <Input id="ep-url" value={form.url} onChange={(e) => set("url", e.target.value)} placeholder="https://..." className="pr-8" />
@@ -194,7 +221,8 @@ export default function EditProductDialog({
             <Textarea id="ep-desc" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Opis produktu..." rows={2} />
           </div>
 
-          <div className="flex gap-2 justify-end pt-1">
+          </div>
+          <div className="flex gap-2 justify-end pt-3 border-t border-border mt-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Anuluj</Button>
             <Button type="submit" disabled={saving || !form.name.trim() || uploading}>
               {saving ? "Zapisywanie..." : "Zapisz zmiany"}

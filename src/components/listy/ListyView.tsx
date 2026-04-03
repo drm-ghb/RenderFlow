@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShoppingCart, Search, LayoutGrid, List, SlidersHorizontal, Link2, MoreHorizontal, Pencil, Archive, ArchiveRestore, Trash2, Pin, PinOff, AlertTriangle, Check } from "lucide-react";
+import { ShoppingCart, Search, LayoutGrid, List, SlidersHorizontal, Link2, MoreHorizontal, Pencil, Archive, ArchiveRestore, Trash2, Pin, PinOff, AlertTriangle, Check, MessageSquare } from "lucide-react";
+import { pusherClient } from "@/lib/pusher";
+import { getUnreadSet, syncListUnread } from "@/lib/list-unread-store";
 import NewListDialog from "./NewListDialog";
 import EditListDialog from "./EditListDialog";
 import { toast } from "sonner";
@@ -50,6 +52,7 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
   const [sort, setSort] = useState<SortOption>("newest");
   const [editingList, setEditingList] = useState<ShoppingList | null>(null);
   const [warningLink, setWarningLink] = useState<string | null>(null);
+  const [unreadListCounts, setUnreadListCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     setLists(initialLists);
@@ -58,6 +61,39 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
   useEffect(() => {
     const saved = localStorage.getItem("listy-view");
     if (saved === "grid" || saved === "list") setView(saved);
+    // Init unread counts from localStorage
+    const counts: Record<string, number> = {};
+    for (const list of initialLists) {
+      const count = parseInt(localStorage.getItem(`lc_list_unread_count_${list.id}`) ?? "0");
+      if (count > 0) counts[list.id] = count;
+    }
+    setUnreadListCounts(counts);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Real-time unread updates for all lists
+  useEffect(() => {
+    if (initialLists.length === 0) return;
+    const subscriptions = initialLists.map((list) => {
+      const channel = pusherClient.subscribe(`shopping-list-${list.id}`);
+      channel.bind("comment-activity", ({ productId, action }: { productId: string; action: string }) => {
+        if (action === "new") {
+          // Mark the specific product as unread so ListDetail picks it up on mount
+          localStorage.setItem(`lc_unread_${productId}`, "1");
+          // Use shared store — add productId once, then sync (no double-counting)
+          getUnreadSet(list.id).add(productId);
+          syncListUnread(list.id);
+          setUnreadListCounts((prev) => ({ ...prev, [list.id]: getUnreadSet(list.id).size }));
+        }
+      });
+      return list.id;
+    });
+    return () => {
+      for (const listId of subscriptions) {
+        pusherClient.unsubscribe(`shopping-list-${listId}`);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggleView(v: "grid" | "list") {
@@ -316,6 +352,12 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
                 </div>
               </Link>
               <div className="absolute top-3 right-3 flex items-center gap-0.5">
+                {(unreadListCounts[list.id] ?? 0) > 0 && (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold leading-none mr-1">
+                    <MessageSquare size={10} />
+                    {unreadListCounts[list.id]}
+                  </div>
+                )}
                 <button
                   onClick={(e) => { e.preventDefault(); handleCopyLink(list); }}
                   className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -359,6 +401,12 @@ export default function ListyView({ lists: initialLists }: ListyViewProps) {
                 {new Date(list.createdAt).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" })}
               </p>
               <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+                {(unreadListCounts[list.id] ?? 0) > 0 && (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold leading-none mr-1">
+                    <MessageSquare size={10} />
+                    {unreadListCounts[list.id]}
+                  </div>
+                )}
                 <button
                   onClick={() => handleCopyLink(list)}
                   className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

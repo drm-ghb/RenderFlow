@@ -17,6 +17,7 @@ export default async function SettingsOgolnePage() {
       clientLogoUrl: true,
       clientWelcomeMessage: true,
       accentColor: true,
+      navMode: true,
     },
   });
 
@@ -31,6 +32,7 @@ export default async function SettingsOgolnePage() {
       initialClientLogoUrl={user.clientLogoUrl}
       initialClientWelcomeMessage={user.clientWelcomeMessage}
       initialAccentColor={user.accentColor}
+      initialNavMode={user.navMode}
     />
   );
 }

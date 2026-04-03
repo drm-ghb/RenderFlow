@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
 
   if (product) {
     const list = product.section.list;
+    // Trigger list-level event for real-time badge updates
+    await pusherServer.trigger(`shopping-list-${list.id}`, "comment-activity", { productId, action: "new" });
     const listPath = list.slug ?? list.id;
     const notification = await prisma.notification.create({
       data: {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { pusherServer } from "@/lib/pusher";
 
 async function findProduct(productId: string, sectionId: string, listId: string, userId: string) {
   return prisma.listProduct.findFirst({
@@ -20,21 +21,54 @@ export async function PATCH(
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, sectionId, productId } = await params;
-  const { quantity } = await req.json();
-
-  if (typeof quantity !== "number" || quantity < 1) {
-    return NextResponse.json({ error: "Nieprawidłowa ilość" }, { status: 400 });
-  }
+  const body = await req.json();
 
   const product = await findProduct(productId, sectionId, id, session.user.id);
   if (!product) return NextResponse.json({ error: "Nie znaleziono produktu" }, { status: 404 });
 
-  const updated = await prisma.listProduct.update({
-    where: { id: productId },
-    data: { quantity },
-  });
+  try {
+    if (body.approval !== undefined) {
+      if (!["accepted", "rejected", null].includes(body.approval)) {
+        return NextResponse.json({ error: "Nieprawidłowa wartość" }, { status: 400 });
+      }
+      const updated = await prisma.listProduct.update({
+        where: { id: productId },
+        data: { approval: body.approval },
+      });
+      pusherServer.trigger(`shopping-list-${id}`, "approval-change", {
+        productId,
+        approval: body.approval,
+      }).catch((e) => console.error("[approval] pusher trigger failed:", e));
+      return NextResponse.json(updated);
+    }
 
-  return NextResponse.json(updated);
+    if (body.hidden !== undefined) {
+      if (typeof body.hidden !== "boolean") {
+        return NextResponse.json({ error: "Nieprawidłowa wartość" }, { status: 400 });
+      }
+      const updated = await prisma.listProduct.update({
+        where: { id: productId },
+        data: { hidden: body.hidden },
+      });
+      return NextResponse.json(updated);
+    }
+
+    if (body.quantity !== undefined) {
+      if (typeof body.quantity !== "number" || body.quantity < 1) {
+        return NextResponse.json({ error: "Nieprawidłowa ilość" }, { status: 400 });
+      }
+      const updated = await prisma.listProduct.update({
+        where: { id: productId },
+        data: { quantity: body.quantity },
+      });
+      return NextResponse.json(updated);
+    }
+  } catch (err) {
+    console.error("[PATCH product] error:", err);
+    return NextResponse.json({ error: "Błąd serwera", detail: String(err) }, { status: 500 });
+  }
+
+  return NextResponse.json({ error: "Brak danych do aktualizacji" }, { status: 400 });
 }
 
 export async function PUT(
@@ -46,7 +80,7 @@ export async function PUT(
 
   const { id, sectionId, productId } = await params;
   const body = await req.json();
-  const { name, url, imageUrl, price, manufacturer, color, size, description, deliveryTime } = body;
+  const { name, url, imageUrl, price, manufacturer, color, size, description, deliveryTime, category } = body;
 
   if (!name?.trim()) return NextResponse.json({ error: "Nazwa jest wymagana" }, { status: 400 });
 
@@ -65,6 +99,7 @@ export async function PUT(
       size: size || null,
       description: description || null,
       deliveryTime: deliveryTime || null,
+      category: category || null,
     },
   });
 

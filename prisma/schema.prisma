@@ -8,40 +8,41 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  allowDirectStatusChange   Boolean      @default(false)
-  allowClientComments       Boolean      @default(true)
-  allowClientAcceptance     Boolean      @default(true)
-  requireClientEmail        Boolean      @default(false)
-  requirePinTitle           Boolean      @default(false)
-  defaultRenderStatus       RenderStatus @default(REVIEW)
-  defaultRenderOrder        String       @default("order")
-  maxPinsPerRender          Int?
-  autoClosePinsOnAccept     Boolean      @default(false)
-  autoArchiveOnAccept       Boolean      @default(false)
-  hideCommentCount          Boolean      @default(false)
-  clientWelcomeMessage      String?
-  clientLogoUrl             String?
-  accentColor               String?
-  notifyClientOnStatusChange Boolean     @default(true)
-  notifyClientOnReply       Boolean      @default(true)
-  allowClientVersionRestore Boolean      @default(true)
-  showProjectTitle          Boolean      @default(true)
-  globalHiddenModules       String[]     @default([])
-  isAdmin       Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts      Account[]
-  sessions      Session[]
-  projects      Project[]
-  notifications Notification[]
-  shoppingLists ShoppingList[]
+  id                         String         @id @default(cuid())
+  name                       String?
+  email                      String         @unique
+  emailVerified              DateTime?
+  image                      String?
+  password                   String?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+  allowDirectStatusChange    Boolean        @default(false)
+  accentColor                String?
+  allowClientAcceptance      Boolean        @default(true)
+  allowClientComments        Boolean        @default(true)
+  autoArchiveOnAccept        Boolean        @default(false)
+  autoClosePinsOnAccept      Boolean        @default(false)
+  clientLogoUrl              String?
+  clientWelcomeMessage       String?
+  defaultRenderOrder         String         @default("order")
+  defaultRenderStatus        RenderStatus   @default(REVIEW)
+  hideCommentCount           Boolean        @default(false)
+  maxPinsPerRender           Int?
+  notifyClientOnReply        Boolean        @default(true)
+  notifyClientOnStatusChange Boolean        @default(true)
+  requireClientEmail         Boolean        @default(false)
+  requirePinTitle            Boolean        @default(false)
+  allowClientVersionRestore  Boolean        @default(true)
+  showProjectTitle           Boolean        @default(true)
+  isAdmin                    Boolean        @default(false)
+  globalHiddenModules        String[]       @default([])
+  listsCategoryOrder         String[]       @default([])
+  navMode                    String         @default("dashboard")
+  accounts                   Account[]
+  notifications              Notification[]
+  projects                   Project[]
+  sessions                   Session[]
+  shoppingLists              ShoppingList[]
 }
 
 model Account {
@@ -50,15 +51,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -68,76 +68,72 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  slug        String?  @unique
-  title       String
-  clientName  String?
-  clientEmail String?
-  description String?
-  shareToken    String    @unique @default(cuid())
-  sharePassword String?
+  id             String          @id @default(cuid())
+  title          String
+  description    String?
+  shareToken     String          @unique @default(cuid())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String
+  clientEmail    String?
+  clientName     String?
+  archived       Boolean         @default(false)
   shareExpiresAt DateTime?
-  archived      Boolean   @default(false)
-  pinned        Boolean   @default(false)
-  modules       String[]  @default([])
-  hiddenModules String[]  @default([])
-  createdAt     DateTime  @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String
-
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rooms         Room[]
-  renders       Render[]
-  shoppingLists ShoppingList[]
-  clients       ProjectClient[]
+  sharePassword  String?
+  modules        String[]        @default([])
+  pinned         Boolean         @default(false)
+  hiddenModules  String[]        @default([])
+  slug           String?         @unique
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clients        ProjectClient[]
+  renders        Render[]
+  rooms          Room[]
+  shoppingLists  ShoppingList[]
 }
 
 model ProjectClient {
   id            String   @id @default(cuid())
   name          String
   email         String?
-  isMainContact Boolean  @default(false)
   projectId     String
   createdAt     DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  isMainContact Boolean  @default(false)
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ShoppingList {
-  id         String   @id @default(cuid())
-  slug       String?  @unique
+  id         String        @id @default(cuid())
   name       String
-  shareToken String   @unique @default(cuid())
-  archived   Boolean  @default(false)
-  pinned     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
   userId     String
   projectId  String?
-
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project  Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  sections ListSection[]
+  shareToken String        @unique @default(cuid())
+  archived   Boolean       @default(false)
+  pinned     Boolean       @default(false)
+  slug       String?       @unique
+  sections   ListSection[]
+  project    Project?      @relation(fields: [projectId], references: [id])
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ListSection {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  order     Int           @default(0)
+  createdAt DateTime      @default(now())
   listId    String
-
-  list     ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
-  products ListProduct[]
+  sortBy    String        @default("manual")
+  products  ListProduct[]
+  list      ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
 }
 
 model ListProduct {
-  id           String   @id @default(cuid())
+  id           String               @id @default(cuid())
   name         String
   url          String?
   imageUrl     String?
@@ -147,59 +143,49 @@ model ListProduct {
   size         String?
   description  String?
   deliveryTime String?
-  quantity     Int      @default(1)
-  order        Int      @default(0)
-  createdAt    DateTime @default(now())
+  order        Int                  @default(0)
+  createdAt    DateTime             @default(now())
   sectionId    String
-
-  section  ListSection          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  comments ListProductComment[]
+  quantity     Int                  @default(1)
+  category     ListProductCategory?
+  hidden       Boolean              @default(false)
+  approval     String?
+  section      ListSection          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  comments     ListProductComment[]
 }
 
 model ListProductComment {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   content   String
   author    String
-  createdAt DateTime @default(now())
+  createdAt DateTime           @default(now())
   productId String
-
-  product ListProduct        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  replies ListProductReply[]
+  product   ListProduct        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  replies   ListProductReply[]
 }
 
 model ListProductReply {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   content   String
   author    String
-  createdAt DateTime @default(now())
+  createdAt DateTime           @default(now())
   commentId String
-
-  comment ListProductComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  comment   ListProductComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 }
 
 model Room {
   id        String   @id @default(cuid())
   name      String
-  type      RoomType @default(INNE)
-  icon      String?
   order     Int      @default(0)
-  archived  Boolean  @default(false)
-  pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
   projectId String
-
-  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  renders Render[]
-  folders Folder[]
-}
-
-enum RoomType {
-  TOALETA
-  WC
-  SALON
-  KUCHNIA
-  SYPIALNIA
-  INNE
+  type      RoomType @default(INNE)
+  archived  Boolean  @default(false)
+  icon      String?
+  pinned    Boolean  @default(false)
+  folders   Folder[]
+  renders   Render[]
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Folder {
@@ -207,33 +193,31 @@ model Folder {
   name      String
   roomId    String
   order     Int      @default(0)
-  pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  room    Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  renders Render[]
+  pinned    Boolean  @default(false)
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  renders   Render[]
 }
 
 model Render {
-  id        String       @id @default(cuid())
-  name      String
-  fileUrl   String
-  fileKey   String
-  order     Int          @default(0)
-  archived  Boolean      @default(false)
-  pinned    Boolean      @default(false)
-  status    RenderStatus @default(REVIEW)
-  viewCount Int          @default(0)
-  createdAt DateTime     @default(now())
-  projectId String
-  roomId    String?
-  folderId  String?
-
-  project  Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  room     Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  folder   Folder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  comments Comment[]
-  versions RenderVersion[]
+  id                     String                  @id @default(cuid())
+  name                   String
+  fileUrl                String
+  fileKey                String
+  order                  Int                     @default(0)
+  createdAt              DateTime                @default(now())
+  projectId              String
+  roomId                 String?
+  archived               Boolean                 @default(false)
+  status                 RenderStatus            @default(REVIEW)
+  viewCount              Int                     @default(0)
+  folderId               String?
+  pinned                 Boolean                 @default(false)
+  comments               Comment[]
+  folder                 Folder?                 @relation(fields: [folderId], references: [id])
+  project                Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  room                   Room?                   @relation(fields: [roomId], references: [id])
+  versions               RenderVersion[]
   versionRestoreRequests VersionRestoreRequest[]
 }
 
@@ -244,8 +228,7 @@ model RenderVersion {
   fileKey       String?
   versionNumber Int
   archivedAt    DateTime @default(now())
-
-  render Render @relation(fields: [renderId], references: [id], onDelete: Cascade)
+  render        Render   @relation(fields: [renderId], references: [id], onDelete: Cascade)
 }
 
 model VersionRestoreRequest {
@@ -259,30 +242,23 @@ model VersionRestoreRequest {
   status     String   @default("PENDING")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  render Render @relation(fields: [renderId], references: [id], onDelete: Cascade)
-}
-
-enum RenderStatus {
-  REVIEW
-  ACCEPTED
+  render     Render   @relation(fields: [renderId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
-  id        String        @id @default(cuid())
-  title     String?
-  content   String
-  posX      Float
-  posY      Float
+  id         String        @id @default(cuid())
+  content    String
+  posX       Float
+  posY       Float
   status     CommentStatus @default(NEW)
+  author     String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  renderId   String
+  title      String?
   isInternal Boolean       @default(false)
-  author    String
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  renderId  String
-
-  render  Render  @relation(fields: [renderId], references: [id], onDelete: Cascade)
-  replies Reply[]
+  render     Render        @relation(fields: [renderId], references: [id], onDelete: Cascade)
+  replies    Reply[]
 }
 
 model Reply {
@@ -291,14 +267,7 @@ model Reply {
   author    String
   createdAt DateTime @default(now())
   commentId String
-
-  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-}
-
-enum CommentStatus {
-  NEW
-  IN_PROGRESS
-  DONE
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -307,13 +276,12 @@ model Notification {
   message      String
   link         String
   read         Boolean  @default(false)
-  type         String   @default("info")
-  requestId    String?
   createdAt    DateTime @default(now())
   projectId    String?
   projectTitle String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestId    String?
+  type         String   @default("info")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoginLog {
@@ -344,4 +312,33 @@ model StatusChangeRequest {
   status     String   @default("PENDING")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+enum ListProductCategory {
+  LAMPY
+  AKCESORIA
+  MEBLE
+  ARMATURA
+  OKLADZINY_SCIENNE
+  PODLOGA
+}
+
+enum RoomType {
+  TOALETA
+  WC
+  SALON
+  KUCHNIA
+  SYPIALNIA
+  INNE
+}
+
+enum RenderStatus {
+  REVIEW
+  ACCEPTED
+}
+
+enum CommentStatus {
+  NEW
+  IN_PROGRESS
+  DONE
 }

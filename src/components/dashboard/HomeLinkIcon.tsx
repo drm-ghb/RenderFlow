@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Grid2x2 } from "lucide-react";
 
-export function HomeLinkIcon() {
+export function HomeLinkIcon({ hidden }: { hidden?: boolean } = {}) {
   const pathname = usePathname();
-  if (pathname === "/home") return null;
+  if (pathname === "/home" || hidden) return null;
 
   return (
     <Link

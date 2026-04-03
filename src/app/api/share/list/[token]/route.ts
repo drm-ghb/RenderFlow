@@ -21,7 +21,7 @@ export async function GET(
       sections: {
         orderBy: { order: "asc" },
         include: {
-          products: { orderBy: { order: "asc" } },
+          products: { where: { hidden: false }, orderBy: { order: "asc" } },
         },
       },
     },

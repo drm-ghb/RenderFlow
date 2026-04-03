@@ -9,11 +9,21 @@ export default async function HomePage() {
   const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { globalHiddenModules: true },
+        select: { globalHiddenModules: true, navMode: true },
       })
     : null;
 
   const hidden = user?.globalHiddenModules ?? [];
+  const navMode = user?.navMode ?? "dashboard";
+
+  if (navMode === "sidebar") {
+    return (
+      <div className="flex flex-col items-start justify-start">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Witamy w Veedeck!</h1>
+        <p className="text-sm text-muted-foreground mt-2">Wybierz moduł z paska bocznego, aby rozpocząć pracę.</p>
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -34,6 +34,7 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
         orderBy: { order: "asc" },
         include: {
           products: {
+            where: { hidden: false },
             orderBy: { order: "asc" },
             include: { _count: { select: { comments: true } } },
           },
@@ -74,6 +75,7 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
       quantity: p.quantity,
       order: p.order,
       commentCount: p._count.comments,
+      approval: p.approval,
     })),
   }));
 
@@ -86,7 +88,7 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
         designerName={list.project?.user?.name}
       />
 
-      <main className="flex-1 container mx-auto px-3 sm:px-6 max-w-6xl py-4 sm:py-8">
+      <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-2 min-w-0">
@@ -114,6 +116,8 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
         </div>
 
         <ShareListClient
+          listId={list.id}
+          listShareToken={token}
           listName={list.name}
           projectTitle={list.project?.title}
           projectShareToken={list.project?.shareToken}
@@ -121,6 +125,8 @@ export default async function PublicListPage({ params }: { params: Promise<{ tok
           grandTotal={grandTotal}
           grandCurrency={grandCurrency}
           hasTotal={hasTotal}
+          designerName={list.project?.user?.name ?? undefined}
+          designerLogoUrl={list.project?.user?.clientLogoUrl ?? undefined}
         />
       </main>
     </div>

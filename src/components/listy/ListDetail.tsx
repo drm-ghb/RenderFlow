@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Plus, ExternalLink, Minus, MoreHorizontal, Pencil, Trash2, GripVertical, FileDown, Sheet, MessageSquare } from "lucide-react";
+import { ChevronLeft, Plus, ExternalLink, Minus, MoreHorizontal, Pencil, Trash2, GripVertical, FileDown, Sheet, MessageSquare, ArrowUpDown, Eye, EyeOff, Check, X, RotateCcw } from "lucide-react";
 import ProductCommentPanel from "./ProductCommentPanel";
+import { pusherClient } from "@/lib/pusher";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -32,6 +34,29 @@ import { CSS } from "@dnd-kit/utilities";
 import AddProductDialog from "./AddProductDialog";
 import EditProductDialog from "./EditProductDialog";
 import ShareDialog from "@/components/dashboard/ShareDialog";
+
+import { getUnreadSet, syncListUnread } from "@/lib/list-unread-store";
+
+const CATEGORIES = [
+  { value: "LAMPY", label: "Lampy" },
+  { value: "AKCESORIA", label: "Akcesoria" },
+  { value: "MEBLE", label: "Meble" },
+  { value: "ARMATURA", label: "Armatura" },
+  { value: "OKLADZINY_SCIENNE", label: "Okładziny ścienne" },
+  { value: "PODLOGA", label: "Podłoga" },
+];
+
+const SORT_OPTIONS = [
+  { value: "manual", label: "Ręcznie" },
+  { value: "category", label: "Kategoria" },
+  { value: "name", label: "Nazwa" },
+  { value: "price", label: "Cena" },
+];
+
+function getCategoryLabel(value: string | null | undefined): string {
+  if (!value) return "";
+  return CATEGORIES.find((c) => c.value === value)?.label ?? value;
+}
 
 interface Product {
   id: string;
@@ -46,13 +71,18 @@ interface Product {
   deliveryTime: string | null;
   quantity: number;
   order: number;
+  hidden: boolean;
+  category: string | null;
+  approval: string | null;
   commentCount?: number;
 }
+
 
 interface Section {
   id: string;
   name: string;
   order: number;
+  sortBy: string;
   products: Product[];
 }
 
@@ -64,6 +94,11 @@ interface ListDetailProps {
     project: { id: string; title: string; hiddenModules: string[] } | null;
     sections: Section[];
   };
+  categoryOrder: string[];
+}
+
+function getSortBy(sortBy: string | null | undefined): string {
+  return sortBy || "manual";
 }
 
 function parsePrice(price: string | null): number | null {
@@ -110,8 +145,13 @@ function ProductRow({
   onEdit,
   onDelete,
   onOpenComments,
+  onToggleHidden,
+  onApprovalChange,
+  approval,
   commentCount,
+  unread,
   deleting,
+  dragHandle,
 }: {
   product: Product;
   index: number;
@@ -122,8 +162,13 @@ function ProductRow({
   onEdit: () => void;
   onDelete: () => void;
   onOpenComments: () => void;
+  onToggleHidden: () => void;
+  onApprovalChange: (value: string | null) => void;
+  approval: string | null;
   commentCount: number;
+  unread: boolean;
   deleting?: boolean;
+  dragHandle?: React.ReactNode;
 }) {
   const [qty, setQty] = useState(product.quantity);
   const [saving, setSaving] = useState(false);
@@ -151,9 +196,19 @@ function ProductRow({
   const totalPrice = unitPrice !== null ? unitPrice * qty : null;
 
   return (
-    <div className={`flex items-center gap-4 px-4 py-4 hover:bg-muted/30 transition-colors ${!last ? "border-b border-border" : ""}`}>
+    <div className={`flex items-center gap-2 px-4 py-4 hover:bg-muted/30 transition-colors ${!last ? "border-b border-border" : ""} ${product.hidden ? "opacity-40" : ""}`}>
+      {/* Drag handle */}
+      {dragHandle ?? <span className="w-4 shrink-0" />}
       {/* Index */}
-      <span className="w-5 text-right text-xs text-muted-foreground tabular-nums shrink-0 self-start mt-1">{index + 1}</span>
+      <span className="w-5 text-right text-xs text-muted-foreground tabular-nums shrink-0">{index + 1}</span>
+      {/* Visibility toggle */}
+      <button
+        onClick={onToggleHidden}
+        className="shrink-0 self-start mt-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+        title={product.hidden ? "Pokaż klientowi" : "Ukryj przed klientem"}
+      >
+        {product.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+      </button>
 
       {/* Image */}
       <div className="w-32 h-32 shrink-0 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
@@ -167,7 +222,14 @@ function ProductRow({
 
       {/* Details */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-foreground truncate">{product.name}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="font-medium text-sm text-foreground truncate">{product.name}</p>
+          {product.category && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#19213D]/8 text-[#19213D] dark:bg-[#19213D]/20 dark:text-blue-300 shrink-0">
+              {getCategoryLabel(product.category)}
+            </span>
+          )}
+        </div>
         {product.manufacturer && (
           <p className="text-xs text-muted-foreground mt-0.5">{product.manufacturer}</p>
         )}
@@ -180,6 +242,18 @@ function ProductRow({
 
       {/* Qty + Price (right side) */}
       <div className="flex items-center gap-3 shrink-0">
+        {/* Approval badge */}
+        {approval === "accepted" && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
+            Zaakceptowane
+          </span>
+        )}
+        {approval === "rejected" && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
+            Odrzucone
+          </span>
+        )}
+
         {/* Quantity control */}
         <div className="flex items-center gap-1">
           <button
@@ -234,9 +308,9 @@ function ProductRow({
           className="relative flex items-center justify-center w-7 h-7 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           title="Komentarze"
         >
-          <MessageSquare size={15} />
+          <MessageSquare size={15} className={unread ? "text-blue-500" : ""} />
           {commentCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-[#19213D] text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
+            <span className={`absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none transition-colors ${unread ? "bg-blue-500" : "bg-[#19213D]"}`}>
               {commentCount > 99 ? "99+" : commentCount}
             </span>
           )}
@@ -260,6 +334,25 @@ function ProductRow({
               Edytuj
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {approval !== "accepted" && (
+              <DropdownMenuItem onClick={() => onApprovalChange("accepted")}>
+                <Check size={13} className="mr-2 text-green-600" />
+                Zaakceptuj
+              </DropdownMenuItem>
+            )}
+            {approval !== "rejected" && (
+              <DropdownMenuItem onClick={() => onApprovalChange("rejected")}>
+                <X size={13} className="mr-2 text-red-500" />
+                Odrzuć
+              </DropdownMenuItem>
+            )}
+            {approval !== null && (
+              <DropdownMenuItem onClick={() => onApprovalChange(null)}>
+                <RotateCcw size={13} className="mr-2" />
+                Resetuj status
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
               <Trash2 size={13} className="mr-2" />
               Usuń produkt
@@ -267,6 +360,31 @@ function ProductRow({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+    </div>
+  );
+}
+
+function SortableProduct({ id, children }: { id: string; children: (dragHandle: React.ReactNode) => React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+  const dragHandle = (
+    <button
+      {...attributes}
+      {...listeners}
+      className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors p-1 touch-none shrink-0"
+      tabIndex={-1}
+    >
+      <GripVertical size={15} />
+    </button>
+  );
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children(dragHandle)}
     </div>
   );
 }
@@ -296,7 +414,31 @@ function SortableSection({ id, children }: { id: string; children: (dragHandle: 
   );
 }
 
-export default function ListDetail({ list, designerName, initialOpenProductId }: ListDetailProps & { designerName?: string; initialOpenProductId?: string }) {
+function sortProducts(products: Product[], sortBy: string, categoryOrder: string[]): Product[] {
+  if (sortBy === "manual") return products;
+  const sorted = [...products];
+  if (sortBy === "name") {
+    sorted.sort((a, b) => a.name.localeCompare(b.name, "pl"));
+  } else if (sortBy === "price") {
+    sorted.sort((a, b) => {
+      const pa = parsePrice(a.price) ?? Infinity;
+      const pb = parsePrice(b.price) ?? Infinity;
+      return pa - pb;
+    });
+  } else if (sortBy === "category") {
+    const order = categoryOrder.length > 0 ? categoryOrder : CATEGORIES.map((c) => c.value);
+    sorted.sort((a, b) => {
+      const ia = a.category ? order.indexOf(a.category) : order.length;
+      const ib = b.category ? order.indexOf(b.category) : order.length;
+      const ai = ia === -1 ? order.length : ia;
+      const bi = ib === -1 ? order.length : ib;
+      return ai - bi;
+    });
+  }
+  return sorted;
+}
+
+export default function ListDetail({ list, designerName, designerLogoUrl, initialOpenProductId, categoryOrder }: ListDetailProps & { designerName?: string; designerLogoUrl?: string; initialOpenProductId?: string }) {
   const [sections, setSections] = useState<Section[]>(list.sections);
   const [addingSection, setAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
@@ -310,6 +452,7 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editingSectionName, setEditingSectionName] = useState("");
   const [commentsPanelProductId, setCommentsPanelProductId] = useState<string | null>(initialOpenProductId ?? null);
+  const [panelLastReadAt, setPanelLastReadAt] = useState<string | null>(null);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
     for (const s of list.sections) {
@@ -319,19 +462,170 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
     }
     return init;
   });
+  const [unreadProducts, setUnreadProducts] = useState<Set<string>>(() => new Set(getUnreadSet(list.id)));
+  const [approvals, setApprovals] = useState<Record<string, string | null>>(() => {
+    const init: Record<string, string | null> = {};
+    for (const s of list.sections) {
+      for (const p of s.products) {
+        init[p.id] = p.approval ?? null;
+      }
+    }
+    return init;
+  });
+
+  useEffect(() => {
+    const store = getUnreadSet(list.id);
+    const unread = new Set<string>(store); // start with what's already in module store
+    for (const s of list.sections) {
+      for (const p of s.products) {
+        // Persisted unread flag (set by Pusher, cleared only when panel is opened)
+        if (localStorage.getItem(`lc_unread_${p.id}`) === "1") {
+          unread.add(p.id);
+          store.add(p.id);
+          continue;
+        }
+        const stored = localStorage.getItem(`lc_seen_${p.id}`);
+        if (stored === null) {
+          localStorage.setItem(`lc_seen_${p.id}`, String(p.commentCount ?? 0));
+        } else if ((p.commentCount ?? 0) > parseInt(stored)) {
+          unread.add(p.id);
+          store.add(p.id);
+          localStorage.setItem(`lc_unread_${p.id}`, "1");
+        }
+      }
+    }
+    setUnreadProducts(new Set(unread));
+    // Sync list-level unread flags
+    syncListUnread(list.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState<string | null>(null);
+  const [isDraggingSection, setIsDraggingSection] = useState(false);
   const sectionInputRef = useRef<HTMLInputElement>(null);
   const sectionEditRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  async function handleProductDragEnd(sectionId: string, event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const section = sections.find((s) => s.id === sectionId);
+    if (!section) return;
+
+    const currentSortBy = getSortBy(section.sortBy);
+    const displayedProducts = sortProducts(section.products, currentSortBy, categoryOrder);
+    const oldIndex = displayedProducts.findIndex((p) => p.id === active.id);
+    const newIndex = displayedProducts.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(displayedProducts, oldIndex, newIndex);
+
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === sectionId ? { ...s, sortBy: "manual", products: reordered } : s
+      )
+    );
+
+    try {
+      await Promise.all([
+        fetch(`/api/lists/${list.id}/sections/${sectionId}/products`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: reordered.map((p) => p.id) }),
+        }),
+        currentSortBy !== "manual"
+          ? fetch(`/api/lists/${list.id}/sections/${sectionId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sortBy: "manual" }),
+            })
+          : Promise.resolve(),
+      ]);
+    } catch {
+      toast.error("Błąd zapisu kolejności produktów");
+    }
+  }
+
+  async function handleSectionSortBy(sectionId: string, sortBy: string) {
+    setSections((prev) => prev.map((s) => s.id === sectionId ? { ...s, sortBy } : s));
+    setSortDropdownOpen(null);
+    try {
+      await fetch(`/api/lists/${list.id}/sections/${sectionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sortBy }),
+      });
+    } catch {
+      toast.error("Błąd zapisu sortowania sekcji");
+    }
+  }
+
   const authorName = designerName || "Projektant";
+
+  const commentsPanelProductIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    commentsPanelProductIdRef.current = commentsPanelProductId;
+  }, [commentsPanelProductId]);
+
+  // Real-time badge updates via list-level Pusher channel
+  useEffect(() => {
+    const channel = pusherClient.subscribe(`shopping-list-${list.id}`);
+    channel.bind("comment-activity", ({ productId, action }: { productId: string; action: string }) => {
+      if (commentsPanelProductIdRef.current === productId) return; // panel handles it
+      setCommentCounts((prev) => ({
+        ...prev,
+        [productId]: action === "new" ? (prev[productId] ?? 0) + 1 : Math.max(0, (prev[productId] ?? 0) - 1),
+      }));
+      if (action === "new") {
+        localStorage.setItem(`lc_unread_${productId}`, "1");
+        getUnreadSet(list.id).add(productId);
+        syncListUnread(list.id);
+        setUnreadProducts((prev) => new Set([...prev, productId]));
+      }
+    });
+    channel.bind("approval-change", ({ productId, approval }: { productId: string; approval: string | null }) => {
+      setApprovals((prev) => ({ ...prev, [productId]: approval }));
+    });
+    return () => {
+      channel.unbind("comment-activity");
+      channel.unbind("approval-change");
+      pusherClient.unsubscribe(`shopping-list-${list.id}`);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCountChange = useCallback((productId: string, count: number) => {
     setCommentCounts((prev) => ({ ...prev, [productId]: count }));
   }, []);
 
+  function openCommentsPanel(productId: string) {
+    const lastReadAt = localStorage.getItem(`lc_readAt_${productId}`);
+    localStorage.setItem(`lc_readAt_${productId}`, new Date().toISOString());
+    localStorage.removeItem(`lc_unread_${productId}`);
+    getUnreadSet(list.id).delete(productId);
+    syncListUnread(list.id);
+    setUnreadProducts((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+    setPanelLastReadAt(lastReadAt);
+    setCommentsPanelProductId(productId);
+  }
+
+  function closeCommentsPanel() {
+    if (commentsPanelProductId) {
+      const currentCount = commentCounts[commentsPanelProductId] ?? 0;
+      localStorage.setItem(`lc_seen_${commentsPanelProductId}`, String(currentCount));
+    }
+    setCommentsPanelProductId(null);
+  }
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  function handleSectionDragStart(_event: DragStartEvent) {
+    setIsDraggingSection(true);
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
+    setIsDraggingSection(false);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = sections.findIndex((s) => s.id === active.id);
@@ -429,6 +723,66 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
     );
   }
 
+  async function handleToggleHidden(sectionId: string, productId: string) {
+    const section = sections.find((s) => s.id === sectionId);
+    const product = section?.products.find((p) => p.id === productId);
+    if (!product) return;
+    const hidden = !product.hidden;
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === sectionId
+          ? { ...s, products: s.products.map((p) => p.id === productId ? { ...p, hidden } : p) }
+          : s
+      )
+    );
+    try {
+      const res = await fetch(`/api/lists/${list.id}/sections/${sectionId}/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hidden }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Toggle hidden failed:", res.status, err);
+        // rollback
+        setSections((prev) =>
+          prev.map((s) =>
+            s.id === sectionId
+              ? { ...s, products: s.products.map((p) => p.id === productId ? { ...p, hidden: !hidden } : p) }
+              : s
+          )
+        );
+        toast.error("Błąd zmiany widoczności produktu");
+      }
+    } catch {
+      // rollback
+      setSections((prev) =>
+        prev.map((s) =>
+          s.id === sectionId
+            ? { ...s, products: s.products.map((p) => p.id === productId ? { ...p, hidden: !hidden } : p) }
+            : s
+        )
+      );
+      toast.error("Błąd zmiany widoczności produktu");
+    }
+  }
+
+  async function handleApprovalChange(sectionId: string, productId: string, value: string | null) {
+    const prev = approvals[productId];
+    setApprovals((a) => ({ ...a, [productId]: value }));
+    try {
+      const res = await fetch(`/api/lists/${list.id}/sections/${sectionId}/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approval: value }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setApprovals((a) => ({ ...a, [productId]: prev }));
+      toast.error("Błąd zmiany statusu akceptacji");
+    }
+  }
+
   async function handleDeleteProduct(sectionId: string, productId: string) {
     setDeletingId(productId);
     try {
@@ -481,14 +835,15 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
     let globalIdx = 1;
 
     for (const section of sections) {
-      if (section.products.length === 0) continue;
+      const visibleProducts = section.products.filter((p) => !p.hidden);
+      if (visibleProducts.length === 0) continue;
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text(section.name, 14, y);
       y += 2;
 
-      const rows = section.products.map((p, i) => {
+      const rows = visibleProducts.map((p, i) => {
         const unit = parsePrice(p.price);
         const total = unit !== null ? unit * p.quantity : null;
         const fmt = (n: number | null) =>
@@ -505,13 +860,13 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
           total !== null ? `${fmt(total)} ${cur}` : "—",
         ];
       });
-      globalIdx += section.products.length;
+      globalIdx += visibleProducts.length;
 
-      const sectionTotal = section.products.reduce((s, p) => {
+      const sectionTotal = visibleProducts.reduce((s, p) => {
         const n = parsePrice(p.price);
         return n !== null ? s + n * p.quantity : s;
       }, 0);
-      const sectionCur = getCurrency(section.products.find((p) => getCurrency(p.price))?.price ?? null);
+      const sectionCur = getCurrency(visibleProducts.find((p) => getCurrency(p.price))?.price ?? null);
 
       autoTable(doc, {
         startY: y,
@@ -557,10 +912,13 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
     let globalIdx = 1;
 
     for (const section of sections) {
+      const visibleProducts = section.products.filter((p) => !p.hidden);
+      if (visibleProducts.length === 0) continue;
+
       wsData.push([section.name]);
       wsData.push(["Lp.", "Nazwa", "Producent", "Kolor", "Rozmiar", "Czas dostawy", "Szt.", "Cena jedn.", "Cena łączna"]);
 
-      for (const p of section.products) {
+      for (const p of visibleProducts) {
         const unit = parsePrice(p.price);
         const total = unit !== null ? unit * p.quantity : null;
         const cur = getCurrency(p.price);
@@ -577,11 +935,11 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
         ]);
       }
 
-      const sectionTotal = section.products.reduce((s, p) => {
+      const sectionTotal = visibleProducts.reduce((s, p) => {
         const n = parsePrice(p.price);
         return n !== null ? s + n * p.quantity : s;
       }, 0);
-      const sectionCur = getCurrency(section.products.find((p) => getCurrency(p.price))?.price ?? null);
+      const sectionCur = getCurrency(visibleProducts.find((p) => getCurrency(p.price))?.price ?? null);
       if (sectionTotal > 0) {
         wsData.push(["", "", "", "", "", "", "", "Suma sekcji:", `${sectionTotal.toLocaleString("pl-PL")} ${sectionCur}`]);
       }
@@ -691,7 +1049,7 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
       )}
 
       {/* Sections */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext id={`sections-${list.id}`} sensors={sensors} collisionDetection={closestCenter} onDragStart={handleSectionDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-8">
             {sections.map((section) => (
@@ -729,10 +1087,47 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
                           </span>
                         )}
                       </div>
-                      <SectionTotal products={section.products} />
+                      <div className="flex items-center gap-3">
+                        {/* Sort dropdown */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setSortDropdownOpen(sortDropdownOpen === section.id ? null : section.id)}
+                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md border transition-colors ${
+                              getSortBy(section.sortBy) !== "manual"
+                                ? "border-[#19213D]/40 bg-[#19213D]/5 text-[#19213D] dark:text-blue-300"
+                                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                            }`}
+                            title="Sortuj sekcję"
+                          >
+                            <ArrowUpDown size={11} />
+                            {SORT_OPTIONS.find((o) => o.value === getSortBy(section.sortBy))?.label ?? "Ręcznie"}
+                          </button>
+                          {sortDropdownOpen === section.id && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setSortDropdownOpen(null)} />
+                              <div className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[130px]">
+                                {SORT_OPTIONS.map((opt) => (
+                                  <button
+                                    key={opt.value}
+                                    onClick={() => handleSectionSortBy(section.id, opt.value)}
+                                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 ${
+                                      getSortBy(section.sortBy) === opt.value ? "text-[#19213D] font-medium dark:text-blue-300" : "text-foreground"
+                                    }`}
+                                  >
+                                    {getSortBy(section.sortBy) === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-[#19213D] dark:bg-blue-400 shrink-0" />}
+                                    {getSortBy(section.sortBy) !== opt.value && <span className="w-1.5 h-1.5 shrink-0" />}
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <SectionTotal products={section.products} />
+                      </div>
                     </div>
 
-                    {section.products.length === 0 ? (
+                    {!isDraggingSection && section.products.length === 0 ? (
                       <div
                         className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-[#19213D]/30 hover:bg-[#19213D]/5 transition-colors"
                         onClick={() => setDialogState({ open: true, sectionId: section.id })}
@@ -740,24 +1135,44 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
                         <Plus size={20} className="mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">Dodaj pierwszy produkt</p>
                       </div>
-                    ) : (
+                    ) : !isDraggingSection ? (
                       <div className="bg-card border border-border rounded-xl overflow-hidden">
-                        {section.products.map((product, i) => (
-                          <ProductRow
-                            key={product.id}
-                            product={product}
-                            index={i}
-                            last={i === section.products.length - 1}
-                            listId={list.id}
-                            sectionId={section.id}
-                            onQuantityChange={(pid, qty) => handleQuantityChange(section.id, pid, qty)}
-                            onEdit={() => setEditState({ product, sectionId: section.id })}
-                            onDelete={() => handleDeleteProduct(section.id, product.id)}
-                            onOpenComments={() => setCommentsPanelProductId(product.id)}
-                            commentCount={commentCounts[product.id] ?? 0}
-                            deleting={deletingId === product.id}
-                          />
-                        ))}
+                        <DndContext
+                          id={`products-${section.id}`}
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={(e) => handleProductDragEnd(section.id, e)}
+                        >
+                          <SortableContext
+                            items={section.products.map((p) => p.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {sortProducts(section.products, getSortBy(section.sortBy), categoryOrder).map((product, i) => (
+                              <SortableProduct key={product.id} id={product.id}>
+                                {(dragHandle) => (
+                                  <ProductRow
+                                    product={product}
+                                    index={i}
+                                    last={i === section.products.length - 1}
+                                    listId={list.id}
+                                    sectionId={section.id}
+                                    onQuantityChange={(pid, qty) => handleQuantityChange(section.id, pid, qty)}
+                                    onEdit={() => setEditState({ product, sectionId: section.id })}
+                                    onDelete={() => handleDeleteProduct(section.id, product.id)}
+                                    onOpenComments={() => openCommentsPanel(product.id)}
+                                    onToggleHidden={() => handleToggleHidden(section.id, product.id)}
+                                    onApprovalChange={(value) => handleApprovalChange(section.id, product.id, value)}
+                                    approval={approvals[product.id] ?? null}
+                                    commentCount={commentCounts[product.id] ?? 0}
+                                    unread={unreadProducts.has(product.id)}
+                                    deleting={deletingId === product.id}
+                                    dragHandle={dragHandle}
+                                  />
+                                )}
+                              </SortableProduct>
+                            ))}
+                          </SortableContext>
+                        </DndContext>
                         <button
                           onClick={() => setDialogState({ open: true, sectionId: section.id })}
                           className="w-full flex items-center gap-1.5 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 border-t border-border transition-colors"
@@ -766,7 +1181,7 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
                           Dodaj produkt
                         </button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </SortableSection>
@@ -802,6 +1217,7 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
             size: editState.product.size ?? "",
             description: editState.product.description ?? "",
             deliveryTime: editState.product.deliveryTime ?? "",
+            category: editState.product.category ?? "",
           }}
           onUpdated={(updated) => {
             handleProductUpdated(editState.sectionId, updated as Product);
@@ -818,7 +1234,10 @@ export default function ListDetail({ list, designerName, initialOpenProductId }:
             productName={product.name}
             isDesigner={true}
             authorName={authorName}
-            onClose={() => setCommentsPanelProductId(null)}
+            designerName={authorName}
+            designerLogoUrl={designerLogoUrl}
+            lastReadAt={panelLastReadAt}
+            onClose={closeCommentsPanel}
             onCountChange={handleCountChange}
           />
         ) : null;

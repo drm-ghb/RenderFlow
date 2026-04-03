@@ -10,9 +10,7 @@ export async function PATCH(
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, sectionId } = await params;
-  const { name } = await req.json();
-
-  if (!name?.trim()) return NextResponse.json({ error: "Nazwa jest wymagana" }, { status: 400 });
+  const { name, sortBy } = await req.json();
 
   const section = await prisma.listSection.findFirst({
     where: { id: sectionId, listId: id, list: { userId: session.user.id } },
@@ -20,9 +18,16 @@ export async function PATCH(
 
   if (!section) return NextResponse.json({ error: "Nie znaleziono sekcji" }, { status: 404 });
 
+  const data: Record<string, unknown> = {};
+  if (name !== undefined) {
+    if (!name?.trim()) return NextResponse.json({ error: "Nazwa jest wymagana" }, { status: 400 });
+    data.name = name.trim();
+  }
+  if (sortBy !== undefined) data.sortBy = sortBy;
+
   const updated = await prisma.listSection.update({
     where: { id: sectionId },
-    data: { name: name.trim() },
+    data,
   });
 
   return NextResponse.json(updated);

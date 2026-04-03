@@ -32,6 +32,10 @@ export async function GET(
         where: { archived: false },
         orderBy: { order: "asc" },
         include: {
+          folders: {
+            orderBy: { order: "asc" },
+            select: { id: true, name: true, pinned: true },
+          },
           renders: {
             where: { archived: false },
             orderBy: { order: "asc" },

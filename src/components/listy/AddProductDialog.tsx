@@ -16,6 +16,15 @@ import { Loader2, ExternalLink, ImagePlus, X } from "lucide-react";
 import { UploadButton } from "@uploadthing/react";
 import type { OurFileRouter } from "@/lib/uploadthing";
 
+const CATEGORIES = [
+  { value: "LAMPY", label: "Lampy" },
+  { value: "AKCESORIA", label: "Akcesoria" },
+  { value: "MEBLE", label: "Meble" },
+  { value: "ARMATURA", label: "Armatura" },
+  { value: "OKLADZINY_SCIENNE", label: "Okładziny ścienne" },
+  { value: "PODLOGA", label: "Podłoga" },
+];
+
 interface ProductData {
   name: string;
   url: string;
@@ -26,6 +35,7 @@ interface ProductData {
   size: string;
   description: string;
   deliveryTime: string;
+  category: string;
 }
 
 interface AddProductDialogProps {
@@ -38,7 +48,7 @@ interface AddProductDialogProps {
 
 const empty = (): ProductData => ({
   name: "", url: "", imageUrl: "", price: "",
-  manufacturer: "", color: "", size: "", description: "", deliveryTime: "",
+  manufacturer: "", color: "", size: "", description: "", deliveryTime: "", category: "",
 });
 
 export default function AddProductDialog({
@@ -80,6 +90,7 @@ export default function AddProductDialog({
         size: data.size ?? "",
         description: data.description ?? "",
         deliveryTime: data.deliveryTime ?? "",
+        category: "",
       });
       if (data.partial) {
         toast.warning("Sklep blokuje automatyczne pobieranie — uzupełnij dane ręcznie");
@@ -180,7 +191,8 @@ export default function AddProductDialog({
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+            <div className="space-y-4 overflow-y-auto pr-1" style={{ maxHeight: "calc(60vh - 48px)" }}>
             {/* Image */}
             <div className="space-y-1.5">
               <Label>Zdjęcie produktu</Label>
@@ -225,6 +237,21 @@ export default function AddProductDialog({
                   )}
                 </div>
               )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="p-category">Kategoria</Label>
+              <select
+                id="p-category"
+                value={form.category}
+                onChange={(e) => set("category", e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#19213D]/20 focus:border-[#19213D]/40"
+              >
+                <option value="">Brak kategorii</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-1.5">
@@ -282,7 +309,8 @@ export default function AddProductDialog({
               <Textarea id="p-desc" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Opis produktu..." rows={2} />
             </div>
 
-            <div className="flex gap-2 justify-end pt-1">
+            </div>
+            <div className="flex gap-2 justify-end pt-3 border-t border-border mt-3">
               <Button type="button" variant="outline" onClick={handleClose}>Anuluj</Button>
               <Button type="submit" disabled={saving || !form.name.trim() || uploading}>
                 {saving ? "Dodawanie..." : "Dodaj produkt"}

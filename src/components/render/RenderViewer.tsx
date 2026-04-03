@@ -81,6 +81,7 @@ interface RenderViewerProps {
   onRenderStatusChange?: (status: RenderStatus) => Promise<void>;
   onStatusRequest?: () => Promise<void>;
   onBack?: () => void;
+  onRenderSelect?: (render: RoomRender) => void;
 }
 
 const STATUS_PIN_COLOR: Record<CommentStatus, string> = {
@@ -166,6 +167,7 @@ export default function RenderViewer({
   onRenderStatusChange,
   onStatusRequest,
   onBack,
+  onRenderSelect,
 }: RenderViewerProps) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
@@ -593,6 +595,9 @@ export default function RenderViewer({
       } else if (projectId) {
         if (e.key === "ArrowLeft" && prevRender) router.push(`/projects/${projectId}/renders/${prevRender.id}`);
         if (e.key === "ArrowRight" && nextRender) router.push(`/projects/${projectId}/renders/${nextRender.id}`);
+      } else if (onRenderSelect) {
+        if (e.key === "ArrowLeft" && prevRender) onRenderSelect(prevRender);
+        if (e.key === "ArrowRight" && nextRender) onRenderSelect(nextRender);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -636,7 +641,17 @@ export default function RenderViewer({
           )}
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1 min-w-0 flex-1 text-sm">
-            {onBack ? null : projectId ? (
+            {onBack ? (
+              <>
+                {projectTitle && <span className="hidden sm:block flex-shrink-0 text-gray-500 dark:text-gray-400 font-medium truncate max-w-[120px]">{projectTitle}</span>}
+                {projectTitle && roomName && <ChevronLeft size={13} className="hidden sm:block flex-shrink-0 text-gray-300 rotate-180" />}
+                {roomName && <span className="hidden sm:block flex-shrink-0 text-gray-500 dark:text-gray-400 font-medium truncate max-w-[120px]">{roomName}</span>}
+                {roomName && folderName && <ChevronLeft size={13} className="hidden sm:block flex-shrink-0 text-gray-300 rotate-180" />}
+                {folderName && <span className="hidden sm:block flex-shrink-0 text-gray-500 dark:text-gray-400 font-medium truncate max-w-[120px]">{folderName}</span>}
+                {(projectTitle || roomName || folderName) && renderName && <ChevronLeft size={13} className="flex-shrink-0 text-gray-300 rotate-180" />}
+                {renderName && <span className="text-gray-900 dark:text-gray-100 font-semibold truncate min-w-0">{renderName}</span>}
+              </>
+            ) : projectId ? (
               <>
                 {projectTitle && (
                   <>
@@ -798,41 +813,55 @@ export default function RenderViewer({
       {/* Content */}
       <div className="flex flex-1 min-h-0">
         {/* Thumbnails sidebar */}
-        {isDesigner && (
+        {(isDesigner || (onRenderSelect && roomRenders.length > 0)) && (
           <div className="hidden md:flex w-44 border-r bg-card flex-col flex-shrink-0 overflow-hidden">
             <div className="px-3 py-2.5 border-b flex-shrink-0 flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                 Pliki ({roomRenders.length})
               </p>
-              {projectId && roomId && (
+              {isDesigner && projectId && roomId && (
                 <RenderUploader projectId={projectId} roomId={roomId} compact />
               )}
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
               {roomRenders.map((r) => (
-                <Link
-                  key={r.id}
-                  href={`/projects/${projectId}/renders/${r.id}`}
-                  className={`block rounded-lg overflow-hidden border-2 transition-colors ${
-                    r.id === renderId
-                      ? "border-blue-500"
-                      : "border-transparent hover:border-gray-200"
-                  }`}
-                >
-                  <div className="aspect-video bg-muted overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={r.fileUrl}
-                      alt={r.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <p className={`text-xs px-1.5 py-1 truncate ${
-                    r.id === renderId ? "text-blue-600 font-semibold" : "text-gray-600"
-                  }`}>
-                    {r.name}
-                  </p>
-                </Link>
+                isDesigner ? (
+                  <Link
+                    key={r.id}
+                    href={`/projects/${projectId}/renders/${r.id}`}
+                    className={`block rounded-lg overflow-hidden border-2 transition-colors ${
+                      r.id === renderId
+                        ? "border-blue-500"
+                        : "border-transparent hover:border-gray-200"
+                    }`}
+                  >
+                    <div className="aspect-video bg-muted overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.fileUrl} alt={r.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className={`text-xs px-1.5 py-1 truncate ${r.id === renderId ? "text-blue-600 font-semibold" : "text-gray-600"}`}>
+                      {r.name}
+                    </p>
+                  </Link>
+                ) : (
+                  <button
+                    key={r.id}
+                    onClick={() => onRenderSelect?.(r)}
+                    className={`w-full text-left rounded-lg overflow-hidden border-2 transition-colors ${
+                      r.id === renderId
+                        ? "border-blue-500"
+                        : "border-transparent hover:border-gray-200"
+                    }`}
+                  >
+                    <div className="aspect-video bg-muted overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.fileUrl} alt={r.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className={`text-xs px-1.5 py-1 truncate ${r.id === renderId ? "text-blue-600 font-semibold" : "text-gray-600"}`}>
+                      {r.name}
+                    </p>
+                  </button>
+                )
               ))}
             </div>
           </div>
@@ -841,9 +870,9 @@ export default function RenderViewer({
         {/* Image area */}
         <div className="flex-1 relative bg-muted">
           {/* Left navigation arrow */}
-          {prevRender && projectId && (
+          {prevRender && (projectId || onRenderSelect) && (
             <button
-              onClick={() => router.push(`/projects/${projectId}/renders/${prevRender.id}`)}
+              onClick={() => projectId ? router.push(`/projects/${projectId}/renders/${prevRender.id}`) : onRenderSelect?.(prevRender)}
               className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-2 shadow-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-all opacity-60 hover:opacity-100"
               title={prevRender.name}
             >
@@ -851,9 +880,9 @@ export default function RenderViewer({
             </button>
           )}
           {/* Right navigation arrow */}
-          {nextRender && projectId && (
+          {nextRender && (projectId || onRenderSelect) && (
             <button
-              onClick={() => router.push(`/projects/${projectId}/renders/${nextRender.id}`)}
+              onClick={() => projectId ? router.push(`/projects/${projectId}/renders/${nextRender.id}`) : onRenderSelect?.(nextRender)}
               className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-2 shadow-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-all opacity-60 hover:opacity-100"
               title={nextRender.name}
             >
@@ -1671,7 +1700,9 @@ export default function RenderViewer({
                   <History size={32} className="mb-3 opacity-30" />
                   <p className="text-sm font-medium">Brak wersji</p>
                   <p className="text-xs mt-1 text-center text-gray-300 max-w-xs">
-                    Wgraj nowy plik używając przycisku &quot;Dodaj wersję&quot;, aby zapisać historię zmian
+                    {isDesigner
+                      ? "Wgraj nowy plik używając przycisku \"Dodaj wersję\", aby zapisać historię zmian"
+                      : "Tu znajdziesz poprzednie wersje tego pliku dodane przez projektanta. Na razie nie ma żadnych wersji do wyświetlenia."}
                   </p>
                 </div>
               )}

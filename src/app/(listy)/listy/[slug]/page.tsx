@@ -10,27 +10,31 @@ export default async function ListPage({ params, searchParams }: { params: Promi
   const { slug } = await params;
   const { product: initialOpenProductId } = await searchParams;
 
-  // Look up by slug first, fall back to id for backward compatibility
-  const list = await prisma.shoppingList.findFirst({
-    where: {
-      userId: session.user.id,
-      OR: [{ slug }, { id: slug }],
-    },
-    include: {
-      project: { select: { id: true, title: true, hiddenModules: true } },
-      sections: {
-        orderBy: { order: "asc" },
-        include: { products: { orderBy: { order: "asc" }, include: { _count: { select: { comments: true } } } } },
+  const [userSettings, list] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { listsCategoryOrder: true, clientLogoUrl: true } }),
+    prisma.shoppingList.findFirst({
+      where: {
+        userId: session.user.id,
+        OR: [{ slug }, { id: slug }],
       },
-    },
-  });
+      include: {
+        project: { select: { id: true, title: true, hiddenModules: true } },
+        sections: {
+          orderBy: { order: "asc" },
+          include: { products: { orderBy: { order: "asc" }, include: { _count: { select: { comments: true } } } } },
+        },
+      },
+    }),
+  ]);
 
   if (!list) notFound();
 
   return (
     <ListDetail
       designerName={(session.user as { name?: string }).name ?? "Projektant"}
+      designerLogoUrl={userSettings?.clientLogoUrl ?? undefined}
       initialOpenProductId={initialOpenProductId}
+      categoryOrder={userSettings?.listsCategoryOrder ?? []}
       list={{
         id: list.id,
         name: list.name,
@@ -40,6 +44,7 @@ export default async function ListPage({ params, searchParams }: { params: Promi
           id: s.id,
           name: s.name,
           order: s.order,
+          sortBy: s.sortBy,
           products: s.products.map((p) => ({
             id: p.id,
             name: p.name,
@@ -53,6 +58,9 @@ export default async function ListPage({ params, searchParams }: { params: Promi
             deliveryTime: p.deliveryTime,
             quantity: p.quantity,
             order: p.order,
+            category: p.category,
+            hidden: p.hidden,
+            approval: p.approval,
             commentCount: p._count.comments,
           })),
         })),

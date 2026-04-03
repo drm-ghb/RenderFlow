@@ -5,6 +5,7 @@ import { Settings, Briefcase } from "lucide-react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import { HomeLinkIcon } from "@/components/dashboard/HomeLinkIcon";
+import NavSidebar from "@/components/dashboard/NavSidebar";
 import { prisma } from "@/lib/prisma";
 
 export default async function ProjektyLayout({
@@ -17,18 +18,20 @@ export default async function ProjektyLayout({
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id! },
-    select: { name: true, email: true },
+    select: { name: true, email: true, navMode: true, globalHiddenModules: true },
   });
 
   const displayName = dbUser?.name || dbUser?.email || null;
+  const navMode = dbUser?.navMode ?? "dashboard";
+  const hiddenModules = dbUser?.globalHiddenModules ?? [];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       <nav className="bg-card border-b">
         <div className="px-3 sm:px-6 flex items-center justify-between py-3 gap-4">
 
           {/* Home (Planospace launcher) */}
-          <HomeLinkIcon />
+          <HomeLinkIcon hidden={navMode === "sidebar"} />
 
           {/* Logo */}
           <Link href="/projekty" className="flex items-center gap-2 shrink-0">
@@ -46,7 +49,7 @@ export default async function ProjektyLayout({
             <span className="hidden md:block text-sm text-gray-500 dark:text-gray-400">{displayName}</span>
             <NotificationBell userId={session.user.id!} iconOnly />
             <Link
-              href="/settings"
+              href="/settings/renderflow"
               title="Ustawienia"
               className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-muted"
             >
@@ -57,9 +60,18 @@ export default async function ProjektyLayout({
 
         </div>
       </nav>
-      <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8">
-        {children}
-      </main>
+      {navMode === "sidebar" ? (
+        <div className="flex flex-1 min-h-0">
+          <NavSidebar hiddenModules={hiddenModules} />
+          <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      ) : (
+        <main className="flex-1 px-3 sm:px-6 py-4 sm:py-8">
+          {children}
+        </main>
+      )}
     </div>
   );
 }

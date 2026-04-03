@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest) {
     "autoArchiveOnAccept", "hideCommentCount", "notifyClientOnStatusChange",
     "notifyClientOnReply", "allowClientVersionRestore", "showProjectTitle",
   ] as const;
-  const stringFields = ["clientWelcomeMessage", "clientLogoUrl", "accentColor", "defaultRenderOrder", "defaultRenderStatus"] as const;
+  const stringFields = ["clientWelcomeMessage", "clientLogoUrl", "accentColor", "defaultRenderOrder", "defaultRenderStatus", "navMode"] as const;
 
   const data: Record<string, unknown> = {};
   if (name !== undefined) data.name = name;
